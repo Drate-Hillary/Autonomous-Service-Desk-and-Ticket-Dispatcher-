@@ -4,7 +4,7 @@ import { CpuIcon, FileAttachmentIcon, ServerCogIcon } from "@hugeicons/core-free
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto flex max-w-320 flex-col gap-5 px-4 py-6 lg:px-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 lg:px-6">
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-foreground">Settings</h2>
         <p className="mt-1 text-xs text-muted-foreground">Model, prompt versioning and external integrations.</p>

@@ -7,7 +7,7 @@ import { ApprovalCard } from "@/components/console/approval-card"
 
 export default function AgentWorkspacePage() {
   return (
-    <div className="mx-auto flex h-full max-w-320 flex-col lg:grid lg:grid-cols-2 lg:divide-x lg:divide-border">
+    <div className="mx-auto flex h-full max-w-7xl flex-col lg:grid lg:grid-cols-2 lg:divide-x lg:divide-border">
       <section className="flex min-h-100 flex-col border-b border-border lg:min-h-0 lg:border-b-0">
         <div className="flex h-10 shrink-0 items-center border-b border-border px-4">
           <h2 className="text-sm font-medium tracking-tight text-muted-foreground">Task</h2>
