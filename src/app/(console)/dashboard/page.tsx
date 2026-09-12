@@ -32,7 +32,7 @@ const statusLabel: Record<string, string> = {
 
 export default function DashboardPage() {
   return (
-    <div className="mx-auto flex max-w-320 flex-col gap-6 px-4 py-6 lg:px-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 lg:px-6">
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-foreground">Agent Command Center</h2>
         <p className="mt-1 text-xs text-muted-foreground">

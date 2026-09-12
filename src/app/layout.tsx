@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -14,13 +19,17 @@ export const metadata: Metadata = {
     "A bounded, explainable AI agent: retrieval, tools, memory, evaluation and human approval, all inspectable.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", spaceGrotesk.variable, "font-sans")}
+      className={cn("h-full", "antialiased", inter.variable, "font-sans")}
     >
-      <body className="min-h-screen bg-background text-foreground font-sans">{children}</body>
+      <body className="min-h-screen bg-background text-foreground font-sans">
+        {children}
+      </body>
     </html>
   );
 }
