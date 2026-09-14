@@ -50,6 +50,10 @@ Open [http://localhost:3000](http://localhost:3000). Start with `/dashboard` or 
 
 **Honest read:** all five written deliverables now exist as real documents (`docs/`), each grounded in what's actually in this repo — the model selection reasons about the real architecture, the prompt spec's v1.1 change is traced to an actual evaluation failure, and the eval table reuses the app's own fixture data rather than invented numbers. The one deliverable still genuinely incomplete is the live model connection itself: `api/client.ts`'s endpoints are stubbed, not called, so today's "actual behaviour" column reflects a manual walkthrough against the spec, not a real Sonnet 5 run — that's the top Week 3 priority per the progress report.
 
+## Database
+
+No backend exists yet — everything above runs on in-memory mock data. `supabase/schema.sql` + `supabase/policies.sql` + `supabase/seed.sql` are the Postgres/Supabase schema for all three roles (customer, admin, agent), built directly from this repo's real types and mock fixtures rather than a generic template. See [`docs/database-schema.md`](docs/database-schema.md) for the full gap analysis and run order.
+
 ## Learn more
 
 - [Next.js Documentation](https://nextjs.org/docs)
