@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { CheckmarkCircle02Icon, Cancel01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
 import { createClient } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 
 // Real excerpt from the seeded boundary matrix (supabase/seed.sql →
 // guardrail_rules) — what this console actually is, shown before a
@@ -15,7 +14,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 const BOUNDARY_ROWS = [
   { capability: "Draft a requisition", aiAllowed: true },
   { capability: "Submit a purchase requisition", aiAllowed: false },
-  { capability: "Approve a purchase requisition", aiAllowed: true },
+  { capability: "Approve a purchase requisition", aiAllowed: false },
   { capability: "Release a financial transaction", aiAllowed: false },
 ];
 
@@ -55,7 +54,7 @@ export default function LoginPage() {
       <div className="dark relative hidden flex-col justify-between overflow-hidden bg-background px-14 py-14 text-foreground lg:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <HugeiconsIcon icon={SparklesIcon} size={24} />
+            <Icon icon={SparklesIcon} size={24} className="" />
           </div>
           <span className="text-sm font-medium tracking-tight">Resolv-HQ</span>
         </div>
