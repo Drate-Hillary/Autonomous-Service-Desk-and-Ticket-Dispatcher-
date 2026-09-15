@@ -1,14 +1,24 @@
 "use client"
 
+import { useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "cn"
-import { escalations } from "@/lib/stores/admin-store"
 import { useAdminStore } from "@/lib/stores/admin-store"
 
 export function TranscriptView() {
-  const selectedTicketId = useAdminStore((s) => s.selectedTicketId)
-  const escalation = escalations[selectedTicketId]
+  const selectedApprovalId = useAdminStore((s) => s.selectedApprovalId)
+  const tickets = useAdminStore((s) => s.tickets)
+  const transcriptsByRequest = useAdminStore((s) => s.transcriptsByRequest)
+  const loadDetail = useAdminStore((s) => s.loadDetail)
+
+  const ticket = tickets.find((t) => t.approvalId === selectedApprovalId)
+
+  useEffect(() => {
+    if (selectedApprovalId) void loadDetail(selectedApprovalId)
+  }, [selectedApprovalId, loadDetail])
+
+  const transcript = ticket?.requestId ? (transcriptsByRequest[ticket.requestId] ?? []) : []
 
   return (
     <section className="flex min-h-0 flex-col lg:h-full">
@@ -20,14 +30,17 @@ export function TranscriptView() {
       <ScrollArea className="min-h-100 lg:flex-1">
         <AnimatePresence mode="wait">
           <motion.div
-            key={selectedTicketId}
+            key={selectedApprovalId}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             className="flex flex-col gap-3 px-5 py-4"
           >
-            {escalation?.transcript.map((entry) => (
+            {transcript.length === 0 && (
+              <p className="text-xs text-muted-foreground">No transcript recorded for this request.</p>
+            )}
+            {transcript.map((entry) => (
               <div
                 key={entry.id}
                 className={cn(

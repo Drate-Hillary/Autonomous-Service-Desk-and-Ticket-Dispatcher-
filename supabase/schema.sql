@@ -142,8 +142,21 @@ create trigger trg_profiles_updated_at before update on profiles
 create table if not exists customer_profiles (
   id uuid primary key references profiles(id) on delete cascade,
   plan text not null default 'Free',
-  notification_channel_preference text not null default 'in_app'
+  notification_channel_preference text not null default 'in_app',
+  -- Backs the customer app's Profile > Notifications toggles
+  -- (notification-settings.tsx) and the AI personalization / memory
+  -- master switches on Profile > Saved Information — both existed as
+  -- UI with no backing field before this.
+  push_notifications boolean not null default true,
+  email_notifications boolean not null default true,
+  ai_personalization boolean not null default true,
+  memory_enabled boolean not null default true
 );
+-- Idempotent for a database that already ran an earlier version of this file.
+alter table customer_profiles add column if not exists push_notifications boolean not null default true;
+alter table customer_profiles add column if not exists email_notifications boolean not null default true;
+alter table customer_profiles add column if not exists ai_personalization boolean not null default true;
+alter table customer_profiles add column if not exists memory_enabled boolean not null default true;
 
 -- Gap: nothing in the mock data lets an admin "own" a ticket. Real
 -- support consoles need this to avoid two admins working the same
