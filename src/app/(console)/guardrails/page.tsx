@@ -1,8 +1,12 @@
 import { Icon } from "@/components/ui/icon"
-import { guardrails } from "@/lib/mock-console"
+import { createClient } from "@/lib/server"
 import { CheckmarkCircle02Icon, Cancel01Icon } from "@hugeicons/core-free-icons"
 
-export default function GuardrailsPage() {
+export default async function GuardrailsPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.from("guardrail_rules").select("*").order("capability")
+  const guardrails = data ?? []
+
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 lg:px-6">
       <div>
@@ -27,14 +31,21 @@ export default function GuardrailsPage() {
               <tr key={rule.capability} className="border-b border-border last:border-0">
                 <td className="px-4 py-2.5 font-medium text-foreground">{rule.capability}</td>
                 <td className="px-4 py-2.5 text-center">
-                  <BoundaryMark ok={rule.aiAllowed} />
+                  <BoundaryMark ok={rule.ai_allowed} />
                 </td>
                 <td className="px-4 py-2.5 text-center">
-                  <BoundaryMark ok={rule.humanApproval} />
+                  <BoundaryMark ok={rule.human_approval} />
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{rule.note ?? "—"}</td>
               </tr>
             ))}
+            {guardrails.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                  No guardrail rules configured.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

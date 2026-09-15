@@ -26,32 +26,36 @@ import {
   Activity03Icon,
   Shield01Icon,
   Settings02Icon,
+  File02Icon,
+  Time01Icon,
 } from "@hugeicons/core-free-icons"
 
 const data = {
-  user: {
-    name: "Manager",
-    email: "manager@resolv-hq.app",
-    avatar: "",
-  },
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: <HugeiconsIcon icon={DashboardBrowsingIcon} strokeWidth={2} /> },
     { title: "Agent Workspace", url: "/agent", icon: <HugeiconsIcon icon={Robot02Icon} strokeWidth={2} /> },
     { title: "Knowledge Base", url: "/knowledge", icon: <HugeiconsIcon icon={Knowledge01Icon} strokeWidth={2} /> },
     { title: "Tools", url: "/tools", icon: <HugeiconsIcon icon={Wrench01Icon} strokeWidth={2} /> },
     { title: "Memory", url: "/memory", icon: <HugeiconsIcon icon={AiBrain01Icon} strokeWidth={2} /> },
+    { title: "Help Articles", url: "/help-articles", icon: <HugeiconsIcon icon={File02Icon} strokeWidth={2} /> },
   ],
   navGovernance: [
     { title: "Evaluations", url: "/evaluations", icon: <HugeiconsIcon icon={Chart01Icon} strokeWidth={2} /> },
     { title: "Traces & Logs", url: "/traces", icon: <HugeiconsIcon icon={Activity03Icon} strokeWidth={2} /> },
     { title: "Guardrails", url: "/guardrails", icon: <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} /> },
+    { title: "Activity Log", url: "/activity", icon: <HugeiconsIcon icon={Time01Icon} strokeWidth={2} /> },
   ],
   navSecondary: [
     { title: "Settings", url: "/settings", icon: <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} /> },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: { name: string; email: string; avatar: string }
+}) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -75,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

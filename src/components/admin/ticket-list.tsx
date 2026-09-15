@@ -3,15 +3,16 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "cn"
 import { useAdminStore } from "@/lib/stores/admin-store"
-import type { Ticket, TicketPriority } from "@/types"
+import type { AdminTicket } from "@/types"
+import type { RequestPriority } from "@/types/database.types"
 
-const priorityOrder: TicketPriority[] = ["high", "medium", "low"]
-const priorityLabel: Record<TicketPriority, string> = {
+const priorityOrder: RequestPriority[] = ["high", "medium", "low"]
+const priorityLabel: Record<RequestPriority, string> = {
   high: "High",
   medium: "Medium",
   low: "Low",
 }
-const priorityDot: Record<TicketPriority, string> = {
+const priorityDot: Record<RequestPriority, string> = {
   high: "bg-priority-high",
   medium: "bg-priority-medium",
   low: "bg-priority-low",
@@ -19,9 +20,9 @@ const priorityDot: Record<TicketPriority, string> = {
 
 export function TicketList() {
   const tickets = useAdminStore((s) => s.tickets)
-  const selectedTicketId = useAdminStore((s) => s.selectedTicketId)
+  const selectedApprovalId = useAdminStore((s) => s.selectedApprovalId)
   const selectTicket = useAdminStore((s) => s.selectTicket)
-  const decisions = useAdminStore((s) => s.decisions)
+  const isLoading = useAdminStore((s) => s.isLoading)
 
   return (
     <aside className="flex w-full shrink-0 flex-col border-border bg-sidebar text-sidebar-foreground lg:h-screen lg:w-64 lg:border-r">
@@ -34,6 +35,12 @@ export function TicketList() {
 
       <ScrollArea className="lg:flex-1">
         <div className="flex gap-4 overflow-x-auto px-3 py-3 lg:flex-col lg:overflow-visible">
+          {isLoading && tickets.length === 0 && (
+            <p className="px-1.5 text-xs text-sidebar-foreground/50">Loading approvals…</p>
+          )}
+          {!isLoading && tickets.length === 0 && (
+            <p className="px-1.5 text-xs text-sidebar-foreground/50">No approvals yet.</p>
+          )}
           {priorityOrder.map((priority) => {
             const group = tickets.filter((t) => t.priority === priority)
             if (group.length === 0) return null
@@ -46,13 +53,11 @@ export function TicketList() {
                 <div className="flex gap-1.5 lg:flex-col">
                   {group.map((ticket) => (
                     <TicketRow
-                      key={ticket.id}
+                      key={ticket.approvalId}
                       ticket={ticket}
-                      selected={ticket.id === selectedTicketId}
-                      decided={Boolean(
-                        decisions[ticket.id] === "approved" || decisions[ticket.id] === "rejected"
-                      )}
-                      onSelect={() => selectTicket(ticket.id)}
+                      selected={ticket.approvalId === selectedApprovalId}
+                      decided={ticket.status === "approved" || ticket.status === "rejected"}
+                      onSelect={() => selectTicket(ticket.approvalId)}
                     />
                   ))}
                 </div>
@@ -71,7 +76,7 @@ function TicketRow({
   decided,
   onSelect,
 }: {
-  ticket: Ticket
+  ticket: AdminTicket
   selected: boolean
   decided: boolean
   onSelect: () => void
@@ -88,7 +93,14 @@ function TicketRow({
         <span className="truncate text-xs font-medium text-sidebar-accent-foreground">
           {ticket.customerName}
         </span>
-        {decided && <span className="size-1.5 shrink-0 rounded-full bg-approve" />}
+        {decided && (
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              ticket.status === "approved" ? "bg-approve" : "bg-destructive"
+            )}
+          />
+        )}
       </div>
       <p className="mt-0.5 line-clamp-2 text-sm text-sidebar-foreground/55">
         {ticket.subject}

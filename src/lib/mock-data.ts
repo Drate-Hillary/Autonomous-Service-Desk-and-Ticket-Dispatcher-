@@ -1,6 +1,10 @@
-import type { ChatStreamItem, Escalation, Ticket } from "@/types"
+// NOTE: superseded by real Supabase queries (see src/lib/stores/chat-store.ts
+// and src/lib/stores/admin-store.ts) as of the Part A rewiring — nothing in
+// the app imports this file anymore. Left in place, deliberately untyped
+// against the app's current domain types (@/types), since its shapes
+// (Ticket/Escalation) predate the schema-driven AdminTicket/Escalation.
 
-export const initialChatStream: ChatStreamItem[] = [
+export const initialChatStream = [
   {
     type: "message",
     id: "m1",
@@ -52,7 +56,7 @@ export const initialChatStream: ChatStreamItem[] = [
   },
 ]
 
-export const tickets: Ticket[] = [
+export const tickets = [
   {
     id: "4821",
     customerName: "Priya Nandan",
@@ -97,7 +101,7 @@ export const tickets: Ticket[] = [
   },
 ]
 
-export const escalations: Record<string, Escalation> = {
+export const escalations = {
   "4821": {
     ticketId: "4821",
     aiSummary:

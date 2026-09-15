@@ -22,6 +22,8 @@ const pageLabels: Record<string, string> = {
   "/evaluations": "Evaluations",
   "/traces": "Traces & Logs",
   "/guardrails": "Guardrails",
+  "/activity": "Activity Log",
+  "/help-articles": "Help Articles",
   "/settings": "Settings",
 }
 

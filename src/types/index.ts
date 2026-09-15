@@ -1,10 +1,21 @@
-// Shared domain types for the customer chat surface and the admin
-// approval dashboard.
+// Shared domain types for the customer-facing chat demo (src/app/chat) and
+// the admin escalation queue (src/app/admin). These used to be bespoke mock
+// shapes; they're now thin view-models over real Supabase rows so the two
+// vocabularies stay unified with the schema:
+//   - ai_message_role is "user" | "assistant" (not "user" | "agent")
+//   - request_priority is "low" | "medium" | "high"
+// See src/lib/stores/chat-store.ts and src/lib/stores/admin-store.ts for the
+// queries that populate these.
 
-export type ChatRole = "user" | "agent"
+import type { ApprovalRisk, ApprovalStatus, RequestPriority } from "@/types/database.types"
+
+export type ChatRole = "user" | "assistant"
 
 export interface Citation {
-  id: number
+  /** ai_message_sources.id (uuid) — stable key, not the display number. */
+  id: string
+  /** 1-based position among a message's citations, what's rendered in the tag. */
+  number: number
   policyLabel: string
   excerpt: string
 }
@@ -28,19 +39,26 @@ export interface ToolEvent {
 
 export type ChatStreamItem = ChatMessage | ToolEvent
 
-export type TicketPriority = "high" | "medium" | "low"
+// ---------------------------------------------------------------------
+// Admin escalation queue — one row per pending/decided agent_approvals
+// entry, joined against its requests + profiles rows.
+// ---------------------------------------------------------------------
 
-export interface Ticket {
-  id: string
+export interface AdminTicket {
+  approvalId: string
+  requestId: string | null
+  code: string | null
   customerName: string
   subject: string
-  priority: TicketPriority
+  priority: RequestPriority
   waitingSince: string
+  status: ApprovalStatus
+  assignedAdminId: string | null
 }
 
 export interface TranscriptEntry {
   id: string
-  role: ChatRole
+  role: "user" | "agent"
   content: string
   timestamp: string
 }
@@ -55,14 +73,24 @@ export interface ProposedAction {
   type: string
   description: string
   amount?: number
+  currency?: string
+  risk: ApprovalRisk
+}
+
+export interface RequestCsat {
+  rating: number
+  comment: string | null
 }
 
 export interface Escalation {
-  ticketId: string
+  approvalId: string
+  requestId: string | null
   aiSummary: string
   evidence: PolicyEvidence[]
   action: ProposedAction
-  transcript: TranscriptEntry[]
+  decisionNote: string | null
+  status: ApprovalStatus
+  feedback: RequestCsat | null
 }
 
 export type EscalationDecision = "approved" | "rejected" | "editing"

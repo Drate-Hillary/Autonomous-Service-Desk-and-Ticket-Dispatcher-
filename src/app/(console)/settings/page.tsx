@@ -1,8 +1,23 @@
 import { Badge } from "@/components/ui/badge"
 import { Icon } from "@/components/ui/icon"
+import { createClient } from "@/lib/server"
+import { IntegrationsManager } from "./integrations-manager"
 import { CpuIcon, FileAttachmentIcon, ServerCogIcon } from "@hugeicons/core-free-icons"
 
-export default function SettingsPage() {
+const modelFieldLabel: Record<string, string> = {
+  foundation_model: "Foundation model",
+  context_window: "Context window",
+  temperature: "Temperature",
+}
+
+export default async function SettingsPage() {
+  const supabase = await createClient()
+  const [{ data: modelConfigs }, { data: promptVersions }, { data: integrations }] = await Promise.all([
+    supabase.from("model_configs").select("*"),
+    supabase.from("prompt_versions").select("*").order("name"),
+    supabase.from("integrations").select("*").order("name"),
+  ])
+
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 lg:px-6">
       <div>
@@ -16,9 +31,10 @@ export default function SettingsPage() {
           <h3 className="text-xs font-medium text-foreground">Model</h3>
         </div>
         <dl className="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
-          <Field label="Foundation model" value="resolv-agent-v3" />
-          <Field label="Context window" value="128k tokens" />
-          <Field label="Temperature" value="0.2 (deterministic)" />
+          {(modelConfigs ?? []).map((c) => (
+            <Field key={c.key} label={modelFieldLabel[c.key] ?? c.key} value={c.value} />
+          ))}
+          {(modelConfigs ?? []).length === 0 && <p className="text-muted-foreground">No model configuration recorded.</p>}
         </dl>
       </section>
 
@@ -28,19 +44,16 @@ export default function SettingsPage() {
           <h3 className="text-xs font-medium text-foreground">Prompt versions</h3>
         </div>
         <ul className="mt-3 flex flex-col divide-y divide-border text-xs">
-          {[
-            { name: "procurement-planner", version: "1.4.0", status: "active" },
-            { name: "retrieval-grounding", version: "1.1.2", status: "active" },
-            { name: "approval-summariser", version: "1.0.3", status: "active" },
-          ].map((p) => (
-            <li key={p.name} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+          {(promptVersions ?? []).map((p) => (
+            <li key={p.id} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
               <span className="text-foreground">{p.name}</span>
               <span className="flex items-center gap-2">
                 <span className="tabular text-muted-foreground">v{p.version}</span>
-                <Badge variant="approve">{p.status}</Badge>
+                <Badge variant={p.status === "active" ? "approve" : "secondary"}>{p.status}</Badge>
               </span>
             </li>
           ))}
+          {(promptVersions ?? []).length === 0 && <p className="py-2.5 text-muted-foreground">No prompt versions recorded.</p>}
         </ul>
       </section>
 
@@ -53,30 +66,7 @@ export default function SettingsPage() {
           The agent exposes its tools through an MCP-style interface, so other agents or systems can call the
           same approved functions under the same guardrails.
         </p>
-        <div className="mt-3 rounded-md border border-border px-3 py-2.5 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-foreground">Procurement MCP Server</span>
-            <Badge variant="approve">connected</Badge>
-          </div>
-          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-muted-foreground">Protocol</dt>
-              <dd className="mt-0.5 text-foreground">MCP 1.0</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Endpoint</dt>
-              <dd className="mt-0.5 text-foreground">mcp://resolv-hq/procurement</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Exposed tools</dt>
-              <dd className="tabular mt-0.5 text-foreground">4</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Last sync</dt>
-              <dd className="mt-0.5 text-foreground">2 min ago</dd>
-            </div>
-          </dl>
-        </div>
+        <IntegrationsManager initialIntegrations={integrations ?? []} />
       </section>
     </div>
   )
