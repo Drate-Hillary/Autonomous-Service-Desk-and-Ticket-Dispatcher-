@@ -59,9 +59,9 @@ function LoginForm() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
       {/* Design column — what the console actually governs, not decoration */}
-      <div className="dark relative hidden flex-col justify-between overflow-hidden bg-background px-14 py-14 text-foreground lg:flex">
+      <div className="relative flex-col justify-between hidden overflow-hidden dark bg-background px-14 py-14 text-foreground lg:flex">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <div className="flex items-center justify-center rounded-full size-8 bg-primary text-primary-foreground">
             <Icon icon={SparklesIcon} size={24} className="" />
           </div>
           <span className="text-sm font-medium tracking-tight">Resolv-HQ</span>
@@ -77,7 +77,7 @@ function LoginForm() {
             person.
           </p>
 
-          <dl className="mt-8 divide-y divide-border border-t border-border">
+          <dl className="mt-8 border-t divide-y divide-border border-border">
             {BOUNDARY_ROWS.map((row) => (
               <div
                 key={row.capability}
@@ -103,12 +103,12 @@ function LoginForm() {
       </div>
 
       {/* Input column */}
-      <div className="flex items-center justify-center bg-background px-6 py-16">
+      <div className="flex items-center justify-center px-6 py-16 bg-background">
         <div className="w-full max-w-md">
           <div className="mb-10 space-y-1.5 lg:hidden">
             <div className="mb-6 flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <span className="text-xs font-semibold">R</span>
+              <div className="flex items-center justify-center rounded-full size-8 bg-primary text-primary-foreground">
+                <Icon icon={SparklesIcon} size={24} className="" />
               </div>
               <span className="text-sm font-medium tracking-tight">Resolv-HQ</span>
             </div>
@@ -165,7 +165,7 @@ function LoginForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="h-12 w-full rounded-lg text-base"
+              className="w-full h-12 text-base rounded-lg"
             >
               {loading ? "Signing in…" : "Sign in"}
             </Button>
