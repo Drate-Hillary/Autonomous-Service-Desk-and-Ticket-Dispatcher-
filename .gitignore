@@ -33,7 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed) — except .env.example,
 # a template with no real values, meant to be committed
 .env*
-!.env.example
+.env.example
+.env.local
+.env.local.bak
 
 # vercel
 .vercel
