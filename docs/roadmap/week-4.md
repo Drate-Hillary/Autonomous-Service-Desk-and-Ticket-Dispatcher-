@@ -21,7 +21,7 @@
 | Failure/auth test evidence | ✅ | [`docs/tool-failure-auth-test-evidence.md`](../tool-failure-auth-test-evidence.md) — real, executed output (not hypothetical) for missing-parameter, cross-customer-authorization, unavailable-tool, and ungrounded-query cases, run directly against `agent-tools.ts` via `tsx`. Also surfaced a genuine keyword-overlap retrieval weakness along the way, logged for the Week 7 Failure Catalogue. |
 | Updated architecture diagram | ✅ | [`docs/architecture-diagram.md`](../architecture-diagram.md) — the first version of the running diagram (none existed before), covering client surfaces through the LLM gateway, ReAct loop, tools, boundary matrix, and approval queue, with the Week 4 addition (the Agent Tools subgraph) called out explicitly. |
 | Human approval gate | ✅ | `agent_approvals` + `routes/admin/approvals.ts` + `decideApproval()` form a real, working approval chokepoint before anything downstream happens. |
-| Week 4 report | ❌ | Not yet written — due before this week closes (25 Sept). |
+| Week 4 report | ✅ | [`../week-4-progress-report.txt`](../week-4-progress-report.txt) — written 25 Sept. |
 
 ## The domain decision — resolved
 
@@ -37,7 +37,7 @@ This was the week the domain split (procurement in the console vs. support-ticke
 2. ~~Add a Tool Catalogue.~~ Done — [`../tool-catalogue.md`](../tool-catalogue.md).
 3. ~~Write Tool Failure & Authorization Test Evidence.~~ Done — [`../tool-failure-auth-test-evidence.md`](../tool-failure-auth-test-evidence.md).
 4. ~~Extend the architecture diagram with the tool-calling step.~~ Done — [`../architecture-diagram.md`](../architecture-diagram.md).
-5. Write the Week 4 progress report, with the domain-reconciliation decision as the week's headline "key engineering decision and why." — still open, the one remaining item this week.
+5. ~~Write the Week 4 progress report, with the domain-reconciliation decision as the week's headline "key engineering decision and why."~~ Done — [`../week-4-progress-report.txt`](../week-4-progress-report.txt).
 
 ## Deliverables checklist
 
@@ -45,4 +45,4 @@ This was the week the domain split (procurement in the console vs. support-ticke
 - [x] Tool Catalogue explicitly labeled/indexed
 - [x] Failure/authorization test evidence captured
 - [x] Architecture diagram extended with tool-calling
-- [ ] Week 4 progress report
+- [x] Week 4 progress report

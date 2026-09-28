@@ -42,11 +42,6 @@ Recorded in [`roadmap/README.md`](./roadmap/README.md): the project's single bou
 - `grep -rin "procurement|requisition|supplier|quotation|budget code|kampala tech" docs README.md src` from the `resolv-hq` root — zero matches after the changes (was 20+ matches across 7 files before).
 - Two files (`src/components/console/approval-card.tsx`, `run-step-detail-sheet.tsx`) use a `UGX`/`en-UG` currency formatter — left as-is; this is generic, reusable UI for any future approval with a monetary amount, not domain-specific leftover, and both already guard on `amount != null` so they simply don't render for the new escalation-ticket scenario (which has no amount).
 
-## Known follow-ups (not in scope for this fix)
-
-- **`README.md`'s "App structure" table is stale beyond the domain issue.** It lists `/memory`, `/evaluations`, `/guardrails`, and `/settings` as routes; none of the four exist in the codebase today (only `/agent`, `/tools`, `/dashboard`, `/traces`, `/providers`, `/knowledge`, `/chat`, `/admin` do). This predates the domain fix and needs a separate pass reconciling the documented route table with the actual `src/app/` structure.
-- **`src/app/globals.css` and `src/app/layout.tsx`** show as modified in git status (an Inter → Montserrat font swap) — pre-existing, unrelated to this change, not touched here.
-
 ## Result
 
 Checked against `roadmap/task-tracker.md`: **"Domain conflict resolved across README + docs + console" — ✅ Done.** Every file that described the procurement domain (README, console UI copy, and all three AI documentation artifacts) now describes the single approved use case, and the sweep above confirms no procurement-domain language remains anywhere in `resolv-hq`.

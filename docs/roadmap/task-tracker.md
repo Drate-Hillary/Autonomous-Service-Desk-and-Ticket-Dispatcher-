@@ -32,6 +32,9 @@ Previously the single most consequential open item: `resolv-hq/README.md` and it
 **Tool Catalogue explicitly labeled/indexed** *(Week 4 · Owner: AEL)*
 [`../tool-catalogue.md`](../tool-catalogue.md) — purpose, exact JSON schema, authorization model, and failure behaviour for all four tools, indexed under the name the brief expects a grader to find.
 
+**Week 4 progress report** *(Week 4 · Owner: PRL)*
+[`../week-4-progress-report.txt`](../week-4-progress-report.txt) — objectives vs. achievements, key decisions (domain-conflict resolution as the headline), risks/challenges, and the plan for Week 5, in the brief's §8 format. Written 25 Sept.
+
 **Failure/authorization test evidence captured** *(Week 4 · Owner: QSL)*
 [`../tool-failure-auth-test-evidence.md`](../tool-failure-auth-test-evidence.md) — real, executed output (via `tsx` against the actual `agent-tools.ts`, not a hypothetical description) for a missing-required-parameter call, a cross-customer authorization check, an unrecognized-tool call, and an ungrounded query. Also surfaced a genuine keyword-overlap retrieval weakness along the way, logged for the Week 7 Failure Catalogue.
 
@@ -157,9 +160,6 @@ Not found. **What's left:** extend the Week 1 diagram with the retrieval path sp
 
 **15-case RAG evaluation** *(Week 3 · Owner: QSL)*
 Only the Week 2 10-case *prompt* evaluation exists; no separate RAG-specific set exists. **What's left:** 5 answerable, 5 partially answerable, 5 deliberately unanswerable questions, run once the live model is confirmed, with expected vs. actual recorded for each.
-
-**Week 4 progress report** *(Week 4 · Owner: PRL)*
-Due before this week closes (25 Sept) and not yet written. **What's left:** write it using the domain-conflict resolution as the week's headline "key engineering decision and why" — it's a genuinely good story to tell honestly.
 
 **Agent Task Contract** *(Week 5 · Owner: AEL)*
 The brief wants goal/tools/state/limits/stop-conditions stated as one formal contract. The content already exists informally, split across `react-loop-core.md` and `ai-boundary-matrix.md`. **What's left:** consolidate it into one named document — this is assembly, not new design work.

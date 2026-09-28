@@ -1,0 +1,121 @@
+WEEK 4 PROGRESS REPORT — RESOLV-HQ
+
+Author: Hillary (Project Lead)
+Period covered: Week 4 (21-25 Sep 2026)
+Date: 25 Sep 2026
+
+
+OBJECTIVES VS. ACHIEVEMENTS
+
+Objective (per Week 4 brief)                              | Achieved | Evidence
+------------------------------------------------------------------------------------------------
+>=2 tools/functions: purpose, input/output schema,         | Yes      | Four tools in
+authorization, failure behaviour                            |          | resolv-hq-backend/src/lib/agent-tools.ts
+                                                              |          | (search_knowledge_base, account_status_lookup,
+                                                              |          | outage_status_checker, draft_escalation_ticket),
+                                                              |          | all with additionalProperties:false and explicit
+                                                              |          | required arrays. Exceeds the brief's minimum of two.
+------------------------------------------------------------------------------------------------
+Tool/function calling implemented through the               | Yes      | react-agent.ts's ReAct loop actually executes
+orchestration layer                                          |          | tool calls the model requests, via native
+                                                              |          | tool-calling through the LLM gateway.
+------------------------------------------------------------------------------------------------
+>=1 tool retrieves current application data or performs      | Yes      | draft_escalation_ticket is the low-risk simulated
+a low-risk simulated side effect                             |          | side effect: produces a labeled draft, writes
+                                                              |          | nothing to the database.
+------------------------------------------------------------------------------------------------
+Tests for missing parameters, unauthorized requests,         | Yes      | docs/tool-failure-auth-test-evidence.md — real,
+unavailable services, unexpected responses                   |          | executed output (via tsx against agent-tools.ts)
+                                                              |          | for all four failure categories.
+------------------------------------------------------------------------------------------------
+Human approval before any higher-impact action                | Yes      | agent_approvals table + routes/admin/approvals.ts
+                                                              |          | + decideApproval() form a real, working approval
+                                                              |          | chokepoint before anything downstream happens.
+------------------------------------------------------------------------------------------------
+Tool Catalogue (named artifact)                               | Yes      | docs/tool-catalogue.md — purpose, schema,
+                                                              |          | authorization, and failure behaviour for all
+                                                              |          | four tools.
+------------------------------------------------------------------------------------------------
+Updated architecture diagram                                  | Yes      | docs/architecture-diagram.md — first version of
+                                                              |          | the running diagram, extended this week with the
+                                                              |          | Agent Tools subgraph.
+------------------------------------------------------------------------------------------------
+Week 4 progress report                                        | Yes      | This document.
+
+
+KEY DECISIONS
+
+1. Headline decision — resolved the domain conflict. The console (resolv-hq)
+   and its AI documentation described a procurement assistant, while the real
+   backend and customer app already implemented a support-request triage
+   agent. Per the brief's rule that a proposal must solve one clearly bounded
+   problem, the project adopted a single use case: the "Resolv HQ Support
+   Agent" — grounded knowledge-base Q&A, own-account/request status lookup,
+   and drafting an escalation ticket for human approval, never itself
+   executing a refund, billing change, cancellation, or account mutation.
+   The console was rewritten to match the backend (README, mock-console.ts,
+   console-store.ts, the login page, the knowledge page, the dashboard
+   subtitle), and the same correction was carried through
+   model-selection-note.md, prompt-specification.md, and evaluation-table.md
+   — including fixing a pre-existing arithmetic error in the evaluation
+   summary. Rewriting UI copy and one demo script was far cheaper than
+   rebuilding a schema, tool set, and boundary matrix around procurement, so
+   the console moved to match the backend rather than the reverse. Full
+   account in docs/domain-conflict-resolution.md; verified with a clean
+   `npx tsc --noEmit` and a zero-match grep for procurement-domain language.
+
+2. Kept tool schemas strict rather than permissive. All four tools declare
+   additionalProperties:false and explicit required arrays, exceeding the
+   brief's minimum of two tools, so the model cannot smuggle in undeclared
+   arguments.
+
+3. Scoped draft_escalation_ticket as a genuinely read-only simulated side
+   effect (labeled "DRAFT — not submitted", writes nothing) rather than a
+   real mutation, deliberately, since a tool named "draft" is the easiest
+   one to accidentally make too powerful.
+
+4. Chose to keep extending one living architecture diagram file week over
+   week instead of redrawing it each time, so it stays a single traceable
+   artifact through Week 7.
+
+
+RISKS / CHALLENGES
+
+- Live model API key still not registered (P0, carried over from Week 2).
+  Every tool-calling test executed this week ran directly against
+  agent-tools.ts via tsx, not through a live orchestration model call. This
+  is the single biggest risk to Week 5's execution traces being credible,
+  since three real end-to-end traces are due once the live model is
+  confirmed.
+- Two duplicate Week 2 reports remain unreconciled (resolv-hq/week 2
+  report.md at repo root vs. docs/week-2-progress-report.md) — risk a
+  grader finds both and questions which is authoritative.
+- The Week 3 report is still split across four person-level files
+  (week-3-hillary.md, -iryn.md, -opis.md, -yawe.md) instead of one
+  consolidated group-leader summary in the brief's §8 format.
+- The outer RESOLV_HQ workspace still has no commit history and the three
+  sub-repos are staged as broken gitlinks with no .gitmodules — a standing
+  risk flagged since Week 1, since GitHub history is primary grading
+  evidence.
+
+
+PLAN FOR WEEK 5
+
+1. Close the P0 blocker: register a real Anthropic API key via the
+   /providers admin page and confirm one live /chat call actually reaches
+   it (providerName/model fields showing a live call, not the keyword
+   fallback).
+2. Write the Agent Task Contract (goal, tools, state, limits, stop
+   conditions), consolidating the content already spread across
+   react-loop-core.md and ai-boundary-matrix.md into one named artifact.
+3. Extend the architecture diagram with the ReAct loop's five-phase
+   subgraph (Sense -> Plan -> Act -> Observe -> Respond) and the
+   MAX_ITERATIONS=4 stop condition.
+4. Once the live model is confirmed, capture three real execution traces
+   under evidence/traces/: one normal success, one tool-failure-then-
+   recovery, and one that hits MAX_ITERATIONS or trips the boundary-matrix
+   detector.
+5. Confirm the loop behaves identically whether the caller is a customer
+   or staff member, per system-prompt-spec.md §5, and note this in the
+   contract.
+6. Write the Week 5 progress report.
