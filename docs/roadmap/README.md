@@ -27,7 +27,7 @@ This is not a new build — it's **already what `resolv-hq-backend` and `resolv-
 | [1](./week-1.md) | 31 Aug–4 Sep | Problem Framing | ❌ Backfill needed — charter, user stories, diagram missing |
 | [2](./week-2.md) | 7–11 Sep | Foundation Model & Prompting | ⚠️ Code complete, needs a live key + domain rewrite |
 | [3](./week-3.md) | 14–18 Sep | Context Engineering / RAG | ⚠️ Pipeline works, missing register/diagram/15-case eval |
-| [4](./week-4.md) | 21–25 Sep (**current**) | Tools & Function Calling | ✅ Tools, catalogue, test evidence, and diagram all done — only the Week 4 report remains |
+| [4](./week-4.md) | 21–25 Sep (**current**) | Tools & Function Calling | ✅ Tools, catalogue, test evidence, diagram, and Week 4 report all done |
 | [5](./week-5.md) | 28 Sep–2 Oct | Bounded Agent | ✅ Loop already built early — mostly evidence-capture left |
 | [6](./week-6.md) | 5–9 Oct | Memory, State, Interop | ❌ Memory table exists but isn't wired into the agent yet |
 | [7](./week-7.md) | 12–16 Oct | Evaluation & Guardrails | ⚠️ Strong guardrails, eval set needs scaling to 30+ |

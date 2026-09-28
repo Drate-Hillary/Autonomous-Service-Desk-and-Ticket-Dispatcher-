@@ -1,0 +1,48 @@
+WEEK 4 — ACTIVITIES & DELIVERABLES
+Tools and Function Calling | 21-25 Sep 2026
+
+
+ACTIVITIES
+
+- Define at least two tools/functions (purpose, input schema, output schema,
+  authorization, failure behaviour).
+- Implement tool/function calling through the application/orchestration
+  layer.
+- At least one tool should retrieve current application data or perform a
+  low-risk simulated side effect (e.g., create a ticket/draft record).
+- Test missing parameters, unauthorized requests, unavailable services and
+  unexpected tool responses.
+- Add human approval before any higher-impact action.
+
+
+DELIVERABLES
+
+1. Tool Catalogue and tool/API schemas
+   docs/tool-catalogue.md — purpose, exact JSON schema, authorization
+   model, and failure behaviour for all four tools.
+
+2. Working demonstration of at least two tools
+   resolv-hq-backend/src/lib/agent-tools.ts — four tools implemented
+   (search_knowledge_base, account_status_lookup, outage_status_checker,
+   draft_escalation_ticket), each with additionalProperties:false and an
+   explicit required array. Called live through react-agent.ts's ReAct
+   loop via the LLM gateway.
+
+3. Failure/authorization test evidence
+   docs/tool-failure-auth-test-evidence.md — real, executed output (via
+   tsx against agent-tools.ts) covering missing-required-parameter,
+   cross-customer authorization, unavailable/unrecognized tool, and
+   ungrounded-query cases.
+
+4. Updated architecture diagram
+   docs/architecture-diagram.md — extended this week with the Agent
+   Tools subgraph, covering client surfaces through the LLM gateway,
+   ReAct loop, tools, boundary matrix, and approval queue.
+
+5. Week 4 progress report
+   docs/week-4-progress-report.txt — objectives vs. achievements, key
+   decisions (domain-conflict resolution as the headline), risks and
+   challenges, and the plan for Week 5.
+
+
+STATUS: All five deliverables complete as of 25 Sep 2026.
