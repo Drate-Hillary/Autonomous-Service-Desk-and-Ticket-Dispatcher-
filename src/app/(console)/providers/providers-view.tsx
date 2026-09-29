@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { apiClient } from "@/backend/api/client"
-import { CpuIcon, Key01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
+import { CpuIcon, Key01Icon, PencilEdit01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 
 export interface AgentProviderRow {
   id: string
@@ -50,6 +50,8 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState(emptyForm)
 
   async function registerModel() {
     if (!form.name.trim() || !form.provider || !form.apiKey.trim()) {
@@ -75,6 +77,39 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
         "Could not register the model. Please try again."
+      toast.error(message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function openEdit(provider: AgentProviderRow) {
+    setEditForm({ name: provider.name, provider: provider.provider, model: provider.model ?? "", apiKey: "" })
+    setEditingId(provider.id)
+  }
+
+  async function saveEdit() {
+    if (!editingId) return
+    if (!editForm.name.trim() || !editForm.provider) {
+      toast.error("Name and provider are required.")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const { data } = await apiClient.patch<AgentProviderRow>(`/admin/agent-providers/${editingId}`, {
+        name: editForm.name.trim(),
+        provider: editForm.provider,
+        model: editForm.model.trim() || null,
+        ...(editForm.apiKey.trim() ? { api_key: editForm.apiKey.trim() } : {}),
+      })
+      setProviders((prev) => prev.map((p) => (p.id === editingId ? data : p)))
+      toast.success(`${data.name} updated`)
+      setEditingId(null)
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+        "Could not update the provider. Please try again."
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -184,6 +219,76 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
         </Dialog>
       </div>
 
+      <Dialog open={editingId !== null} onOpenChange={(next) => !next && setEditingId(null)}>
+        <DialogContent>
+          <DialogTitle>Edit AI model</DialogTitle>
+          <DialogDescription>
+            Update the provider, model, or key. Leave the API key blank to keep the one already on file.
+          </DialogDescription>
+
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-name">Name</Label>
+              <Input
+                id="edit-provider-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-select">Provider</Label>
+              <Select
+                value={editForm.provider}
+                onValueChange={(value) => setEditForm((f) => ({ ...f, provider: value as string }))}
+              >
+                <SelectTrigger id="edit-provider-select" className="w-full">
+                  <SelectValue placeholder="Select a provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-model">Model</Label>
+              <Input
+                id="edit-provider-model"
+                placeholder="e.g. claude-sonnet-5"
+                value={editForm.model}
+                onChange={(e) => setEditForm((f) => ({ ...f, model: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-api-key">API key</Label>
+              <Input
+                id="edit-provider-api-key"
+                type="password"
+                autoComplete="off"
+                placeholder="Leave blank to keep current key"
+                value={editForm.apiKey}
+                onChange={(e) => setEditForm((f) => ({ ...f, apiKey: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingId(null)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={submitting}>
+              {submitting ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {providers.map((provider) => (
           <div key={provider.id} className="glass-panel flex flex-col p-4">
@@ -191,14 +296,23 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
               <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Icon icon={CpuIcon} size={20} />
               </span>
-              <button
-                onClick={() => toggleStatus(provider)}
-                disabled={pending === provider.id}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground disabled:opacity-50"
-              >
-                <span className={`size-1.5 rounded-full ${provider.status === "active" ? "bg-approve" : "bg-muted-foreground"}`} />
-                {pending === provider.id ? "Updating…" : provider.status}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openEdit(provider)}
+                  aria-label={`Edit ${provider.name}`}
+                  className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <Icon icon={PencilEdit01Icon} size={15} />
+                </button>
+                <button
+                  onClick={() => toggleStatus(provider)}
+                  disabled={pending === provider.id}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground disabled:opacity-50"
+                >
+                  <span className={`size-1.5 rounded-full ${provider.status === "active" ? "bg-approve" : "bg-muted-foreground"}`} />
+                  {pending === provider.id ? "Updating…" : provider.status}
+                </button>
+              </div>
             </div>
             <h3 className="mt-3 text-sm font-medium text-foreground">{provider.name}</h3>
             <p className="mt-1 text-xs text-muted-foreground">

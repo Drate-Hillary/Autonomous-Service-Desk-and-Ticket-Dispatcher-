@@ -9,24 +9,10 @@ import { Tick02Icon, Alert02Icon, Cancel01Icon } from "@hugeicons/core-free-icon
 function stepPreview(step: RunStep): string | null {
   if (!step.detail) return null
   switch (step.detail.type) {
-    case "request":
+    case "text":
       return step.detail.text
-    case "context":
-      return step.detail.note
-    case "retrieval":
-      return `${step.detail.sources.length} documents retrieved`
-    case "plan":
-      return `${step.detail.steps.length}-step plan created`
-    case "tool":
-      return `${step.detail.name} — ${step.detail.status === "success" ? "succeeded" : "failed"}`
-    case "observation":
-      return step.detail.note
-    case "decision":
-      return step.detail.note
     case "approval":
-      return step.detail.action
-    case "result":
-      return step.detail.summary
+      return step.detail.title
   }
 }
 
