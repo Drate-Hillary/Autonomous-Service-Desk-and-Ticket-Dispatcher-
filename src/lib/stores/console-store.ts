@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { apiClient } from "@/backend/api/client"
-import { buildDemoRun } from "@/backend/mock-console"
+import { buildRun, type ChatTurnResponse } from "@/backend/build-run"
 import type { AgentStatus, RunStep, RunStepKey } from "@/types/console"
 
 interface WorkspaceMessage {
@@ -16,6 +16,7 @@ interface ConsoleState {
   selectedStepKey: RunStepKey | null
   runId: string | null
   approvalId: string | null
+  conversationId: string | null
   runAgent: (request: string) => Promise<void>
   selectStep: (key: RunStepKey | null) => void
   approve: () => Promise<void>
@@ -36,17 +37,12 @@ const statusForStep: Partial<Record<RunStepKey, AgentStatus>> = {
 }
 
 /**
- * Drives the same scripted step-by-step reveal the demo always had (there's
- * no real LLM behind this yet), but every step of it now writes into the
- * one agent_runs row through the backend API — current_step, and (for the
- * tool step) tool_name/tool_input/tool_output — instead of a separate
- * agent_steps/tool_executions table, which no longer exist. At the
- * approval gate it opens an agent_approvals row; approve()/reject() decide
- * that same row through the backend.
- *
- * Every persistence call below is best-effort: if the backend request
- * fails (or a run couldn't be started at all), the scripted reveal keeps
- * advancing locally rather than blocking the UI on it.
+ * Runs one real assistant turn through the backend (POST
+ * /chat/conversations/:id/messages — retrieval, the ReAct loop and any
+ * escalation draft all happen server-side) and then plays the resulting
+ * steps back one at a time. The escalation's agent_runs / agent_approvals
+ * rows are created by the backend itself; approve()/reject() decide that
+ * same approval row.
  */
 export const useConsoleStore = create<ConsoleState>((set, get) => ({
   status: "ready",
@@ -55,6 +51,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   selectedStepKey: null,
   runId: null,
   approvalId: null,
+  conversationId: null,
 
   selectStep: (key) => set({ selectedStepKey: key }),
 
@@ -62,9 +59,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const busy: AgentStatus[] = ["thinking", "retrieving", "using_tool"]
     if (busy.includes(get().status)) return
 
-    const steps = buildDemoRun(request)
     set({
-      run: steps,
+      run: [],
       status: "thinking",
       selectedStepKey: null,
       runId: null,
@@ -72,129 +68,85 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       messages: [...get().messages, { id: `local-${nextId++}`, role: "user", content: request }],
     })
 
+    let turn: ChatTurnResponse
     try {
-      const { data } = await apiClient.post<{ run: { id: string } }>("/admin/agent-runs", {})
-      set({ runId: data.run.id })
+      let conversationId = get().conversationId
+      if (!conversationId) {
+        const { data } = await apiClient.post<{ id: string }>("/chat/conversations", { title: request.slice(0, 80) })
+        conversationId = data.id
+        set({ conversationId })
+      }
+      const { data } = await apiClient.post<ChatTurnResponse>(`/chat/conversations/${conversationId}/messages`, { content: request })
+      turn = data
     } catch {
-      // No run persisted — the reveal below still plays out locally.
+      set((s) => ({
+        status: "failed",
+        messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: "The agent run failed — the backend request didn't complete. Please try again." }],
+      }))
+      return
     }
 
+    const steps = buildRun(request, turn)
+    set({ run: steps, runId: turn.escalation?.runId ?? null, approvalId: turn.escalation?.approvalId ?? null })
+
     for (const step of steps) {
-      await wait(650)
+      await wait(450)
       setStepStatus(set, step.key, "active")
       set({ status: statusForStep[step.key] ?? "thinking" })
-      await wait(550)
-
-      const { runId } = get()
+      await wait(350)
 
       if (step.key === "approval") {
         setStepStatus(set, step.key, "blocked")
         set({ status: "awaiting_approval" })
-
-        if (runId) {
-          await apiClient
-            .patch(`/admin/agent-runs/${runId}`, { status: "awaiting_approval", currentStep: step.key })
-            .catch(() => {})
-        }
-
-        if (runId && step.detail?.type === "approval") {
-          try {
-            const { data: approval } = await apiClient.post<{ id: string }>(`/admin/agent-runs/${runId}/approvals`, {
-              requestedAction: step.detail.action,
-              reason: `Risk: ${step.detail.risk}${step.detail.amount != null ? ` · ${step.detail.amount} ${step.detail.currency ?? ""}`.trim() : ""}`,
-            })
-            set({ approvalId: approval.id })
-          } catch {
-            set({ approvalId: null })
-          }
-        }
         return
       }
-
       setStepStatus(set, step.key, "done")
-      if (runId) {
-        const toolFields =
-          step.key === "tool" && step.detail?.type === "tool"
-            ? { toolName: step.detail.name, toolInput: step.detail.input, toolOutput: step.detail.output }
-            : {}
-        await apiClient.patch(`/admin/agent-runs/${runId}`, { currentStep: step.key, ...toolFields }).catch(() => {})
-      }
-    }
-  },
-
-  approve: async () => {
-    if (get().status !== "awaiting_approval") return
-    updateApproval(set, "approved")
-    set({ status: "using_tool" })
-
-    const { approvalId, runId } = get()
-
-    if (approvalId) {
-      await apiClient.patch(`/admin/approvals/${approvalId}/approve`).catch(() => {})
-    }
-
-    await wait(700)
-    setStepStatus(set, "approval", "done")
-
-    setStepStatus(set, "result", "active")
-    await wait(500)
-    const action = approvalAction(get())
-    const summary = `${action} — approved and completed.`
-    updateResultSummary(set, summary)
-    setStepStatus(set, "result", "done")
-    if (runId) {
-      await apiClient
-        .patch(`/admin/agent-runs/${runId}`, { status: "completed", currentStep: "result", completedAt: new Date().toISOString() })
-        .catch(() => {})
     }
 
     set((s) => ({
       status: "completed",
-      messages: [
-        ...s.messages,
-        {
-          id: `local-${nextId++}`,
-          role: "agent",
-          content: `Approved — "${action}" is complete. I'll update the case memory.`,
-        },
-      ],
+      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: turn.assistantMessage.content }],
+    }))
+  },
+
+  approve: async () => {
+    const { approvalId } = get()
+    if (get().status !== "awaiting_approval" || !approvalId) return
+    try {
+      await apiClient.patch(`/admin/approvals/${approvalId}/approve`)
+    } catch {
+      return
+    }
+    updateApproval(set, "approved")
+    setStepStatus(set, "approval", "done")
+    setStepStatus(set, "result", "active")
+    await wait(400)
+    const summary = `${approvalAction(get())} — approved and recorded.`
+    updateResultSummary(set, summary)
+    setStepStatus(set, "result", "done")
+    set((s) => ({
+      status: "completed",
+      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: `Approved — "${approvalAction(get())}" has been recorded for staff follow-up.` }],
     }))
   },
 
   reject: async () => {
-    if (get().status !== "awaiting_approval") return
+    const { approvalId } = get()
+    if (get().status !== "awaiting_approval" || !approvalId) return
+    try {
+      await apiClient.patch(`/admin/approvals/${approvalId}/reject`)
+    } catch {
+      return
+    }
     updateApproval(set, "rejected")
-
-    const { approvalId, runId } = get()
-
-    if (approvalId) {
-      await apiClient.patch(`/admin/approvals/${approvalId}/reject`).catch(() => {})
-    }
-
     setStepStatus(set, "approval", "failed")
-
     setStepStatus(set, "result", "active")
-    await wait(500)
-    const action = approvalAction(get())
-    const summary = `${action} — rejected. No action was taken.`
-    updateResultSummary(set, summary)
+    await wait(400)
+    updateResultSummary(set, `${approvalAction(get())} — rejected. No action was taken.`)
     setStepStatus(set, "result", "done")
-    if (runId) {
-      await apiClient
-        .patch(`/admin/agent-runs/${runId}`, { status: "failed", currentStep: "result", completedAt: new Date().toISOString() })
-        .catch(() => {})
-    }
-
     set((s) => ({
       status: "failed",
-      messages: [
-        ...s.messages,
-        {
-          id: `local-${nextId++}`,
-          role: "agent",
-          content: "Understood — I've discarded the draft and logged the rejection for next time.",
-        },
-      ],
+      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: "Rejected — the draft was discarded and no ticket was filed." }],
     }))
   },
 }))

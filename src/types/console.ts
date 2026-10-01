@@ -42,7 +42,7 @@ export type RunStepDetail =
       input: Record<string, string | number>
       output: Record<string, string | number | boolean>
       status: "success" | "error"
-      durationMs: number
+      durationMs?: number
     }
   | { type: "observation"; note: string }
   | { type: "decision"; note: string }

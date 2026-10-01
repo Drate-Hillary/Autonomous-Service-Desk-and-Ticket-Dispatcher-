@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { apiClient } from "@/backend/api/client"
-import { CpuIcon, Key01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
+import { CpuIcon, Key01Icon, PencilEdit02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 
 export interface AgentProviderRow {
   id: string
@@ -50,6 +50,42 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [editing, setEditing] = useState<AgentProviderRow | null>(null)
+  const [editForm, setEditForm] = useState(emptyForm)
+  const [saving, setSaving] = useState(false)
+
+  function startEdit(provider: AgentProviderRow) {
+    setEditing(provider)
+    setEditForm({ name: provider.name, provider: provider.provider, model: provider.model ?? "", apiKey: "" })
+  }
+
+  async function saveEdit() {
+    if (!editing) return
+    if (!editForm.name.trim() || !editForm.provider) {
+      toast.error("Name and provider are required.")
+      return
+    }
+    setSaving(true)
+    try {
+      const { data } = await apiClient.patch<AgentProviderRow>(`/admin/agent-providers/${editing.id}`, {
+        name: editForm.name.trim(),
+        provider: editForm.provider,
+        model: editForm.model.trim() || null,
+        // Blank leaves the stored key untouched.
+        ...(editForm.apiKey.trim() && { api_key: editForm.apiKey.trim() }),
+      })
+      setProviders((prev) => prev.map((p) => (p.id === editing.id ? data : p)))
+      toast.success(`${data.name} updated`)
+      setEditing(null)
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+        "Could not update the model. Please try again."
+      toast.error(message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function registerModel() {
     if (!form.name.trim() || !form.provider || !form.apiKey.trim()) {
@@ -184,6 +220,74 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
         </Dialog>
       </div>
 
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogTitle>Edit AI model</DialogTitle>
+          <DialogDescription>
+            Update the provider details. Leave the API key blank to keep the current one
+            {editing ? ` (ending •••• ${editing.api_key_last4})` : ""}.
+          </DialogDescription>
+
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-name">Name</Label>
+              <Input
+                id="edit-provider-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-select">Provider</Label>
+              <Select
+                value={editForm.provider}
+                onValueChange={(value) => setEditForm((f) => ({ ...f, provider: value as string }))}
+              >
+                <SelectTrigger id="edit-provider-select" className="w-full">
+                  <SelectValue placeholder="Select a provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-model">Model</Label>
+              <Input
+                id="edit-provider-model"
+                placeholder="optional"
+                value={editForm.model}
+                onChange={(e) => setEditForm((f) => ({ ...f, model: e.target.value }))}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-provider-api-key">New API key</Label>
+              <Input
+                id="edit-provider-api-key"
+                type="password"
+                autoComplete="off"
+                placeholder="Leave blank to keep the current key"
+                value={editForm.apiKey}
+                onChange={(e) => setEditForm((f) => ({ ...f, apiKey: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={saving}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {providers.map((provider) => (
           <div key={provider.id} className="glass-panel flex flex-col p-4">
@@ -191,6 +295,16 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
               <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Icon icon={CpuIcon} size={20} />
               </span>
+              <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Edit ${provider.name}`}
+                title="Edit"
+                onClick={() => startEdit(provider)}
+              >
+                <Icon icon={PencilEdit02Icon} size={16} />
+              </Button>
               <button
                 onClick={() => toggleStatus(provider)}
                 disabled={pending === provider.id}
@@ -199,6 +313,7 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
                 <span className={`size-1.5 rounded-full ${provider.status === "active" ? "bg-approve" : "bg-muted-foreground"}`} />
                 {pending === provider.id ? "Updating…" : provider.status}
               </button>
+              </div>
             </div>
             <h3 className="mt-3 text-sm font-medium text-foreground">{provider.name}</h3>
             <p className="mt-1 text-xs text-muted-foreground">

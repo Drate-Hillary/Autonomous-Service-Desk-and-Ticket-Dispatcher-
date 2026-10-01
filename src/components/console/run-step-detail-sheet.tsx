@@ -82,7 +82,7 @@ export function RunStepDetailSheet() {
                       label="Status"
                       value={step.detail.status === "success" ? "Successful" : "Error"}
                     />
-                    <Field label="Duration" value={`${step.detail.durationMs}ms`} />
+                    {step.detail.durationMs != null && <Field label="Duration" value={`${step.detail.durationMs}ms`} />}
                   </div>
                 </>
               )}
