@@ -64,3 +64,47 @@ export interface Escalation {
 }
 
 export type EscalationDecision = "approved" | "rejected" | "editing"
+
+// ---------------------------------------------------------------------
+// General ticket queue — the requests table, staff-side. Distinct from
+// AdminTicket/Escalation above, which are specifically AI-drafted
+// agent_approvals rows awaiting an approve/reject decision.
+// ---------------------------------------------------------------------
+
+export interface TicketMessage {
+  id: string
+  sender: "customer" | "admin" | "agent" | "assistant" | "system"
+  text: string
+  timestamp: string
+}
+
+export interface TicketTimelineStep {
+  key: string
+  label: string
+  timestamp?: string
+}
+
+export interface Ticket {
+  id: string
+  ticketNumber: number
+  title: string
+  category: string
+  categoryId: string | null
+  description: string
+  status: string
+  priority: RequestPriority
+  createdAt: string
+  updatedAt: string
+  resolvedAt: string | null
+  closedAt: string | null
+  aiHandled: boolean
+  customerId?: string
+  customerName: string | null
+  assignedAgentId: string | null
+  assignedAgentName: string | null
+}
+
+export interface TicketDetail extends Ticket {
+  messages: TicketMessage[]
+  timeline: TicketTimelineStep[]
+}

@@ -7,8 +7,6 @@ import type { AgentStatus } from "@/types/console"
 const statusMeta: Record<AgentStatus, { label: string; tone: "idle" | "active" | "warn" | "danger" }> = {
   ready: { label: "Ready", tone: "idle" },
   thinking: { label: "Thinking", tone: "active" },
-  retrieving: { label: "Retrieving", tone: "active" },
-  using_tool: { label: "Using tool", tone: "active" },
   awaiting_approval: { label: "Awaiting approval", tone: "warn" },
   completed: { label: "Completed", tone: "idle" },
   failed: { label: "Failed", tone: "danger" },

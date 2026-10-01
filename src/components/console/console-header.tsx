@@ -12,6 +12,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { AgentStatusPill } from "@/components/console/agent-status-pill"
+import { NotificationsBell } from "@/components/console/notifications-bell"
 
 const pageLabels: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -42,7 +43,10 @@ export function ConsoleHeader() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <AgentStatusPill />
+      <div className="flex items-center gap-2">
+        <NotificationsBell />
+        <AgentStatusPill />
+      </div>
     </header>
   )
 }

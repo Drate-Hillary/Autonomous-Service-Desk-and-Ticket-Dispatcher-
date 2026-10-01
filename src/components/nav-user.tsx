@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -26,7 +25,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UnfoldMoreIcon, CheckmarkBadgeIcon, NotificationIcon, LogoutIcon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/backend/supabase/client"
-import { apiClient } from "@/backend/api/client"
+import { useNotificationsStore } from "@/lib/stores/notifications-store"
 
 function initials(name: string) {
   return name
@@ -48,22 +47,8 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
-  const [pendingApprovals, setPendingApprovals] = useState(0)
-
-  useEffect(() => {
-    let active = true
-    apiClient
-      .get<{ status: string }[]>("/admin/approvals")
-      .then(({ data }) => {
-        if (active) setPendingApprovals(data.filter((t) => t.status === "pending").length)
-      })
-      .catch(() => {
-        // Non-staff sessions (or a transient network error) simply show no badge.
-      })
-    return () => {
-      active = false
-    }
-  }, [])
+  // Polling itself is started by the header's bell; this just reads the shared count.
+  const unreadCount = useNotificationsStore((s) => s.unreadCount)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -120,9 +105,9 @@ export function NavUser({
               <DropdownMenuItem render={<Link href="/admin" />}>
                 <HugeiconsIcon icon={NotificationIcon} strokeWidth={2} />
                 Notifications
-                {pendingApprovals > 0 && (
+                {unreadCount > 0 && (
                   <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[0.625rem] font-semibold text-destructive-foreground">
-                    {pendingApprovals}
+                    {unreadCount}
                   </span>
                 )}
               </DropdownMenuItem>
