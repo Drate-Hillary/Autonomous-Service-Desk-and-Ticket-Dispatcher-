@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "cn"
 import { useConsoleStore } from "@/lib/stores/console-store"
 
-const busyStatuses = ["thinking", "retrieving", "using_tool"]
+const busyStatuses = ["thinking"]
 
 export function WorkspaceChat() {
   const [draft, setDraft] = useState("")

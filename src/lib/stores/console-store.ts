@@ -1,7 +1,6 @@
 import { create } from "zustand"
 import { apiClient } from "@/backend/api/client"
-import { buildRun, type ChatTurnResponse } from "@/backend/build-run"
-import type { AgentStatus, RunStep, RunStepKey } from "@/types/console"
+import type { AgentStatus, RunStep } from "@/types/console"
 
 interface WorkspaceMessage {
   id: string
@@ -9,175 +8,163 @@ interface WorkspaceMessage {
   content: string
 }
 
+interface EscalationPayload {
+  approvalId: string
+  title: string
+  description: string
+  category: string
+  priority: "low" | "normal" | "high"
+  keyFacts: string | null
+  suggestedAction: string | null
+}
+
+interface ChatMessageResponse {
+  assistantMessage: { content: string }
+  steps: string[]
+  escalation: EscalationPayload | null
+}
+
 interface ConsoleState {
   status: AgentStatus
   run: RunStep[]
   messages: WorkspaceMessage[]
-  selectedStepKey: RunStepKey | null
-  runId: string | null
-  approvalId: string | null
+  selectedStepKey: string | null
   conversationId: string | null
+  approvalId: string | null
+  error: string | null
   runAgent: (request: string) => Promise<void>
-  selectStep: (key: RunStepKey | null) => void
+  selectStep: (key: string | null) => void
   approve: () => Promise<void>
   reject: () => Promise<void>
 }
 
 let nextId = 1
-
-const statusForStep: Partial<Record<RunStepKey, AgentStatus>> = {
-  request: "thinking",
-  context: "thinking",
-  retrieval: "retrieving",
-  plan: "thinking",
-  tool: "using_tool",
-  observation: "thinking",
-  decision: "thinking",
-  approval: "awaiting_approval",
-}
+let nextStepId = 1
 
 /**
- * Runs one real assistant turn through the backend (POST
- * /chat/conversations/:id/messages — retrieval, the ReAct loop and any
- * escalation draft all happen server-side) and then plays the resulting
- * steps back one at a time. The escalation's agent_runs / agent_approvals
- * rows are created by the backend itself; approve()/reject() decide that
- * same approval row.
+ * Drives the Agent Workspace against the real backend agent pipeline —
+ * resolv-hq-backend's generateAssistantReply()/runReActLoop(), the exact
+ * same code path the customer app's chat uses, calling whichever
+ * agent_providers row is registered and active. There is no scripted
+ * content here: `run` is built from the real ReAct trace the backend
+ * returns, and an approval gate only appears when the model actually
+ * called draft_escalation_ticket for this request.
  */
 export const useConsoleStore = create<ConsoleState>((set, get) => ({
   status: "ready",
   run: [],
   messages: [],
   selectedStepKey: null,
-  runId: null,
-  approvalId: null,
   conversationId: null,
+  approvalId: null,
+  error: null,
 
   selectStep: (key) => set({ selectedStepKey: key }),
 
   runAgent: async (request) => {
-    const busy: AgentStatus[] = ["thinking", "retrieving", "using_tool"]
-    if (busy.includes(get().status)) return
+    if (get().status === "thinking") return
 
     set({
       run: [],
       status: "thinking",
       selectedStepKey: null,
-      runId: null,
       approvalId: null,
+      error: null,
       messages: [...get().messages, { id: `local-${nextId++}`, role: "user", content: request }],
     })
 
-    let turn: ChatTurnResponse
     try {
       let conversationId = get().conversationId
       if (!conversationId) {
-        const { data } = await apiClient.post<{ id: string }>("/chat/conversations", { title: request.slice(0, 80) })
-        conversationId = data.id
+        const { data: conversation } = await apiClient.post<{ id: string }>("/chat/conversations", {})
+        conversationId = conversation.id
         set({ conversationId })
       }
-      const { data } = await apiClient.post<ChatTurnResponse>(`/chat/conversations/${conversationId}/messages`, { content: request })
-      turn = data
-    } catch {
+
+      const { data } = await apiClient.post<ChatMessageResponse>(`/chat/conversations/${conversationId}/messages`, {
+        content: request,
+      })
+
+      const steps: RunStep[] = data.steps.map((text) => ({
+        key: `step-${nextStepId++}`,
+        label: text,
+        status: "done",
+      }))
+
+      if (data.escalation) {
+        steps.push({
+          key: "approval",
+          label: "Approval required",
+          status: "blocked",
+          detail: { type: "approval", status: "pending", ...data.escalation },
+        })
+        set({ run: steps, status: "awaiting_approval", approvalId: data.escalation.approvalId })
+      } else {
+        steps.push({
+          key: "result",
+          label: "Final result",
+          status: "done",
+          detail: { type: "text", text: data.assistantMessage.content },
+        })
+        set({ run: steps, status: "completed" })
+      }
+
+      set((s) => ({
+        messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: data.assistantMessage.content }],
+      }))
+    } catch (err) {
       set((s) => ({
         status: "failed",
-        messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: "The agent run failed — the backend request didn't complete. Please try again." }],
+        error: err instanceof Error ? err.message : "The agent failed to respond",
+        messages: [
+          ...s.messages,
+          {
+            id: `local-${nextId++}`,
+            role: "agent",
+            content: "Something went wrong reaching the agent — check that a provider is registered and active, and that the backend is reachable.",
+          },
+        ],
       }))
-      return
     }
-
-    const steps = buildRun(request, turn)
-    set({ run: steps, runId: turn.escalation?.runId ?? null, approvalId: turn.escalation?.approvalId ?? null })
-
-    for (const step of steps) {
-      await wait(450)
-      setStepStatus(set, step.key, "active")
-      set({ status: statusForStep[step.key] ?? "thinking" })
-      await wait(350)
-
-      if (step.key === "approval") {
-        setStepStatus(set, step.key, "blocked")
-        set({ status: "awaiting_approval" })
-        return
-      }
-      setStepStatus(set, step.key, "done")
-    }
-
-    set((s) => ({
-      status: "completed",
-      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: turn.assistantMessage.content }],
-    }))
   },
 
   approve: async () => {
-    const { approvalId } = get()
-    if (get().status !== "awaiting_approval" || !approvalId) return
+    const { approvalId, status } = get()
+    if (status !== "awaiting_approval" || !approvalId) return
     try {
       await apiClient.patch(`/admin/approvals/${approvalId}/approve`)
-    } catch {
-      return
+      set((s) => ({
+        status: "completed",
+        run: s.run.map((step) =>
+          step.detail?.type === "approval" ? { ...step, status: "done", detail: { ...step.detail, status: "approved" } } : step
+        ),
+        messages: [
+          ...s.messages,
+          { id: `local-${nextId++}`, role: "agent", content: "Approved — the escalation ticket has been filed for a human to handle." },
+        ],
+      }))
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Failed to approve" })
     }
-    updateApproval(set, "approved")
-    setStepStatus(set, "approval", "done")
-    setStepStatus(set, "result", "active")
-    await wait(400)
-    const summary = `${approvalAction(get())} — approved and recorded.`
-    updateResultSummary(set, summary)
-    setStepStatus(set, "result", "done")
-    set((s) => ({
-      status: "completed",
-      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: `Approved — "${approvalAction(get())}" has been recorded for staff follow-up.` }],
-    }))
   },
 
   reject: async () => {
-    const { approvalId } = get()
-    if (get().status !== "awaiting_approval" || !approvalId) return
+    const { approvalId, status } = get()
+    if (status !== "awaiting_approval" || !approvalId) return
     try {
       await apiClient.patch(`/admin/approvals/${approvalId}/reject`)
-    } catch {
-      return
+      set((s) => ({
+        status: "failed",
+        run: s.run.map((step) =>
+          step.detail?.type === "approval" ? { ...step, status: "failed", detail: { ...step.detail, status: "rejected" } } : step
+        ),
+        messages: [
+          ...s.messages,
+          { id: `local-${nextId++}`, role: "agent", content: "Rejected — no escalation ticket was filed." },
+        ],
+      }))
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Failed to reject" })
     }
-    updateApproval(set, "rejected")
-    setStepStatus(set, "approval", "failed")
-    setStepStatus(set, "result", "active")
-    await wait(400)
-    updateResultSummary(set, `${approvalAction(get())} — rejected. No action was taken.`)
-    setStepStatus(set, "result", "done")
-    set((s) => ({
-      status: "failed",
-      messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: "Rejected — the draft was discarded and no ticket was filed." }],
-    }))
   },
 }))
-
-function setStepStatus(set: (fn: (s: ConsoleState) => Partial<ConsoleState>) => void, key: RunStepKey, status: RunStep["status"]) {
-  set((s) => ({ run: s.run.map((step) => (step.key === key ? { ...step, status } : step)) }))
-}
-
-function approvalAction(state: ConsoleState): string {
-  const step = state.run.find((s) => s.key === "approval")
-  return step?.detail?.type === "approval" ? step.detail.action : "The requested action"
-}
-
-function updateApproval(set: (fn: (s: ConsoleState) => Partial<ConsoleState>) => void, status: "approved" | "rejected") {
-  set((s) => ({
-    run: s.run.map((step) =>
-      step.key === "approval" && step.detail?.type === "approval"
-        ? { ...step, detail: { ...step.detail, status } }
-        : step
-    ),
-  }))
-}
-
-function updateResultSummary(set: (fn: (s: ConsoleState) => Partial<ConsoleState>) => void, summary: string) {
-  set((s) => ({
-    run: s.run.map((step) =>
-      step.key === "result" && step.detail?.type === "result" ? { ...step, detail: { type: "result", summary } } : step
-    ),
-  }))
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}

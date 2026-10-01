@@ -22,11 +22,13 @@ import {
   Wrench01Icon,
   Activity03Icon,
   CpuIcon,
+  Ticket01Icon,
 } from "@hugeicons/core-free-icons"
 
 const data = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: <HugeiconsIcon icon={DashboardBrowsingIcon} strokeWidth={2} /> },
+    { title: "Tickets", url: "/tickets", icon: <HugeiconsIcon icon={Ticket01Icon} strokeWidth={2} /> },
     { title: "Agent Workspace", url: "/agent", icon: <HugeiconsIcon icon={Robot02Icon} strokeWidth={2} /> },
     { title: "Knowledge Base", url: "/knowledge", icon: <HugeiconsIcon icon={Knowledge01Icon} strokeWidth={2} /> },
     { title: "Tools", url: "/tools", icon: <HugeiconsIcon icon={Wrench01Icon} strokeWidth={2} /> },
