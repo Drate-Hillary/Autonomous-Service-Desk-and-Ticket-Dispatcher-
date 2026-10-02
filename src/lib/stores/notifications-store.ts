@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { apiClient } from "@/backend/api/client"
+import { onRealtimeEvent, retainRealtime } from "@/lib/realtime"
 
 export type NotificationType = "request_update" | "ai" | "support" | "completed" | "system"
 
@@ -13,7 +14,9 @@ export interface AppNotification {
   requestId?: string
 }
 
-const POLL_MS = 30_000
+// Pushed events (lib/realtime.ts) deliver notifications instantly; this slower
+// poll is only a safety net for a dropped connection.
+const POLL_MS = 60_000
 
 interface NotificationsState {
   items: AppNotification[]
@@ -28,6 +31,8 @@ interface NotificationsState {
 
 let pollers = 0
 let timer: ReturnType<typeof setInterval> | null = null
+let releaseRealtime: (() => void) | null = null
+let stopListening: (() => void) | null = null
 
 const countUnread = (items: AppNotification[]) => items.filter((n) => !n.read).length
 
@@ -78,6 +83,15 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         if (document.visibilityState === "visible") void get().fetchNotifications()
       }, POLL_MS)
       document.addEventListener("visibilitychange", onVisible)
+      releaseRealtime = retainRealtime()
+      stopListening = onRealtimeEvent((event) => {
+        if (event.type !== "notification") return
+        // De-duplicate: a poll may already have fetched this row.
+        const current = get().items
+        if (current.some((n) => n.id === event.notification.id)) return
+        const items = [event.notification, ...current].slice(0, 100)
+        set({ items, unreadCount: countUnread(items) })
+      })
     }
     return () => {
       pollers -= 1
@@ -85,6 +99,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         if (timer) clearInterval(timer)
         timer = null
         document.removeEventListener("visibilitychange", onVisible)
+        stopListening?.()
+        releaseRealtime?.()
+        stopListening = null
+        releaseRealtime = null
       }
     }
   },
