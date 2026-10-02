@@ -1,6 +1,6 @@
 # Task Tracker — Weeks 1–8, by Status and Priority
 
-**Compiled:** 24 Sept 2026 (Week 4 of 8) | **Consolidates:** [`week-1.md`](./week-1.md) – [`week-8.md`](./week-8.md)
+**Compiled:** 24 Sept 2026 · **Last updated:** 2 Oct 2026 (end of Week 5 of 8) | **Consolidates:** [`week-1.md`](./week-1.md) – [`week-8.md`](./week-8.md)
 
 Every task the brief asks for across all 8 weeks, grouped by actual status, sorted **highest priority first** within each group. Priority reflects how much it blocks other work or graded rubric items — not the week it's nominally due in. Each entry explains what the task actually involves, why it sits at that priority, who's best placed to own it (per the brief's §5 role split), and the concrete evidence or gap behind the status.
 
@@ -39,7 +39,7 @@ Previously the single most consequential open item: `resolv-hq/README.md` and it
 [`../tool-failure-auth-test-evidence.md`](../tool-failure-auth-test-evidence.md) — real, executed output (via `tsx` against the actual `agent-tools.ts`, not a hypothetical description) for a missing-required-parameter call, a cross-customer authorization check, an unrecognized-tool call, and an ungrounded query. Also surfaced a genuine keyword-overlap retrieval weakness along the way, logged for the Week 7 Failure Catalogue.
 
 **Architecture diagram — first version** *(Weeks 1/3/4 · Owner: AIL)*
-[`../architecture-diagram.md`](../architecture-diagram.md) — no diagram existed anywhere in the workspace before this; now covers client surfaces through the LLM gateway, ReAct loop, the four agent tools, the boundary matrix, and the approval queue, in Mermaid so it can be extended in place. Counts as done for Weeks 1/3/4's asks; **still needs the Week 5 extension** (expanding the ReAct node into its own five-phase subgraph) — tracked in Pending below rather than closed outright, since the brief expects this diagram to keep growing through Week 7.
+[`../architecture-diagram.md`](../architecture-diagram.md) — no diagram existed anywhere in the workspace before this; now covers client surfaces through the LLM gateway, ReAct loop, the four agent tools, the boundary matrix, and the approval queue, in Mermaid so it can be extended in place. Counts as done for Weeks 1/3/4's asks. The brief expects it to keep growing through Week 7 (Week 6: memory + MCP annotation; Week 7: failure-catalogue pointers).
 
 **Multi-step bounded agent loop (Sense→Plan→Act→Observe→Respond)** *(Week 5 · Owner: AEL)*
 This is the brief's Week 5 centerpiece — a workflow where the system decides among approved next actions itself, rather than following a fixed script. `react-agent.ts`'s `runReActLoop()` implements the full cycle and is called from `generateAssistantReply()` in place of the old single-shot completion call. Notably, this was built and committed on 22 Sept — a full week ahead of its nominal slot.
@@ -52,6 +52,21 @@ The loop can only ever call the four registered, read-only tools — there's no 
 
 **Human hand-off/approval built into the loop itself** *(Week 5 · Owner: QSL)*
 Anything the agent drafts mid-loop (an escalation ticket) routes to the same `agent_approvals` queue as everything else — the loop's autonomy stops at "propose," never "execute."
+
+**Agent Task Contract** *(Week 5 · Owner: AEL)* — **Done 2 Oct**
+[`../agent-task-contract.md`](../agent-task-contract.md) — goal, closed set of four tools, caller-scoped state, limits (`MAX_ITERATIONS = 4`), five stop conditions, hand-off/approval conditions, and customer/staff parity, consolidated from `react-loop-core.md`, `ai-boundary-matrix.md` and `tool-catalogue.md`. States its own known gaps (§9) rather than overclaiming.
+
+**Architecture diagram — Week 5 extension** *(Week 5 · Owner: AIL)* — **Done 2 Oct**
+`../architecture-diagram.md` extended in place with the ReAct loop's five-phase subgraph, the iteration cap, all five exit paths and the approval hand-off. Standalone Week 4 + Week 5 copies are in [`../architecture-diagrams-week-4-and-5.md`](../architecture-diagrams-week-4-and-5.md).
+
+**Bounded agent workflow report** *(Week 5 · Owner: AEL)* — **Done 2 Oct**
+[`../bounded-agent-workflow-report.md`](../bounded-agent-workflow-report.md) — how the workflow runs, every bound and where it is enforced, evidence with its strength labelled, and what is not yet proven.
+
+**Week 5 progress report** *(Week 5 · Owner: PRL)* — **Done 2 Oct**
+[`../week-5-progress-report.md`](../week-5-progress-report.md) — objectives vs. achievements, decisions, risks, and the Week 6 plan. Honest about the partial trace set.
+
+**Real-time messaging and live notifications (unplanned, outside the 8-week brief)** *(Owner: AIL)* — **Done 2 Oct**
+Requested because ticket messages took too long to arrive. Server-Sent Events stream (`resolv-hq-backend/src/routes/events.ts`, `lib/realtime.ts`; Redis pub/sub with local fallback) pushes new messages, typing signals and notifications instantly; `POST /requests/:id/typing` added; message send no longer waits on notification work or a second fetch. Console: animated three-dot typing indicator, instant optimistic send, live bell with per-type labels and filters (All / Unread / Support / Request update / AI / Completed / System). Type-check and lint clean on both apps; recipient targeting verified with a hub test. **Not yet verified:** end-to-end in a browser with two users. **Not covered:** the `resolv-hq-customer` mobile app does not yet consume `/events`.
 
 ### 🟡 P2 — solid supporting work
 
@@ -94,7 +109,7 @@ The brief's minimum Week 1 evidence includes a functioning GitHub setup. All thr
 ### 🔴 P0 — do these before anything else
 
 **Register a real model API key and confirm one live call** *(Week 2 · Owner: AEL)*
-All the plumbing for a live model call exists (see Completed above) but `system-prompt-spec.md` states outright that no provider API key has been registered or exercised — every response today still falls back to `answerQuestion()`'s keyword matching. **What's left:** add a real Anthropic key via the `/providers` admin page, send one real message through `/chat`, and confirm the response's `providerName`/`model` fields show a live call rather than the fallback. This single step is what makes every later week's evaluation and tracing work meaningful rather than theoretical.
+**Updated 2 Oct — half done.** An Anthropic provider was registered 25 Sept and a live Gemini call (`gemini-3.8-flash`) did answer one query end to end (Week 5 trace T1). But the Anthropic account returns `400 credit balance is too low` and Gemini's free tier (20 requests/day) returned `429` mid-run, so **no provider currently has capacity** and everything falls back to `answerQuestion()`. **What's left:** add Anthropic credit (or move Gemini to a paid tier) — an account/billing action for the project owner — then confirm a `/chat` call shows a live `providerName`/`model`. This is now the single blocker for the traces, the 15-case RAG eval and the Week 7 scenario set.
 
 ### 🟠 P1 — core rubric items, real work started
 
@@ -102,10 +117,7 @@ All the plumbing for a live model call exists (see Completed above) but `system-
 The brief wants the boundary matrix drafted early, as a scoping decision, not discovered after the fact. `ai-boundary-matrix.md` exists and is genuinely thorough, but it's written as a 22 Sept *implementation report* for a specific enforcement task — it never states, up front, "here is what this agent may do / must stay deterministic / needs approval for" in one planning-style table, and it doesn't name the chosen use case. **What's left:** add (or extract into) a short planning table at the top, dated to reflect when the boundary was actually decided, referencing the resolved single use case.
 
 **3 execution traces incl. one failure/recovery case** *(Week 5 · Owner: AEL)*
-The brief wants traces of the *real* agent loop, including a genuine failure and its recovery. `evaluation-table.md` has scenario-level results that gesture at this (e.g., a tool timeout that retried and succeeded), but those are traces of the scripted mock pipeline, not `react-agent.ts` running against a live model. **What's left:** once the live model is confirmed, run three real conversations and save the full traces (messages, tool calls, iteration counts).
-
-**Architecture diagram — Week 5 extension** *(Week 5 · Owner: AIL)*
-The diagram now exists (`docs/architecture-diagram.md`, see Completed) with the client/gateway/tools/boundary/approval layers drawn. **What's left:** expand the `ReAct` node into its own subgraph showing the five-phase Sense→Plan→Act→Observe→Respond cycle and the `MAX_ITERATIONS` stop condition explicitly, per the Agent Task Contract — a small addition to the existing file, not a redraw.
+The brief wants traces of the *real* agent loop, including a genuine failure and its recovery. `evaluation-table.md` has scenario-level results that gesture at this (e.g., a tool timeout that retried and succeeded), but those are traces of the scripted mock pipeline, not `react-agent.ts` running against a live model. **Updated 2 Oct — 2 of 3 captured** in [`../../evidence/traces/week-5-execution-traces.md`](../../evidence/traces/week-5-execution-traces.md): T1 live-model success (no tool called) and T2 a real failure/recovery (both providers failed → keyword fallback; provider-level, not tool-level). **What's left, once a provider has capacity:** a live trace where the model actually calls tools (Plan→Act→Observe), and one that hits the iteration cap or trips the boundary detector; plus a live customer-vs-staff comparison.
 
 **Persistent memory wired into the agent's context** *(Week 6 · Owner: AEL)*
 This is the one item on the whole tracker that's still a genuine, non-trivial code task rather than documentation or evidence-capture. `customer_memory_facts` exists as a table, but `system-prompt-spec.md` says plainly it "isn't in the assistant's context yet." **What's left:** extend whatever loads a caller's context in `chat.ts`/`ai.ts` to also pull their approved memory facts into the prompt, following the same "informative, never authorizing" rule the spec already lays out for when this gets added.
@@ -161,9 +173,6 @@ Not found. **What's left:** extend the Week 1 diagram with the retrieval path sp
 **15-case RAG evaluation** *(Week 3 · Owner: QSL)*
 Only the Week 2 10-case *prompt* evaluation exists; no separate RAG-specific set exists. **What's left:** 5 answerable, 5 partially answerable, 5 deliberately unanswerable questions, run once the live model is confirmed, with expected vs. actual recorded for each.
 
-**Agent Task Contract** *(Week 5 · Owner: AEL)*
-The brief wants goal/tools/state/limits/stop-conditions stated as one formal contract. The content already exists informally, split across `react-loop-core.md` and `ai-boundary-matrix.md`. **What's left:** consolidate it into one named document — this is assembly, not new design work.
-
 **Memory Design and Data Handling Note** *(Week 6 · Owner: QSL)*
 Blocked on the memory-wiring code task above landing first. **What's left, once that's done:** document what's stored (approved preference facts), why, who can access it (RLS-scoped to the owning customer), retention, and deletion.
 
@@ -215,9 +224,9 @@ No automated test files exist in any repo. Same reasoning — a handful of manua
 ## Suggestions — priority-ordered path to finishing on time
 
 1. ~~Lock the use-case decision in writing and rewrite `README.md`/`mock-console.ts`/the AI docs to match.~~ **Done 25 Sept** — see [`../domain-conflict-resolution.md`](../domain-conflict-resolution.md).
-2. **This week (P0, the one remaining blocker):** register one real model API key and confirm a live `/chat` call actually reaches it. Everything downstream — RAG grounding, evaluation, traces — is still meaningless to finish against a fallback that isn't a real model call.
+2. **First thing in Week 6 (P0, the one remaining blocker):** the key is registered but no provider has capacity (Anthropic out of credit, Gemini free tier exhausted). Fund one, confirm a live `/chat` call, then re-run the two missing Week 5 traces. Everything downstream — RAG grounding, evaluation, traces — still depends on it.
 3. **Backfill Week 1 (P1):** Project Charter and 8–12 user stories — derive the stories from already-built features rather than inventing new ones. (The architecture diagram is now done — see item below.)
-4. **Close the remaining documentation debt (P1):** the AI Boundary Matrix still needs its Week 1 planning-table framing, and the Agent Task Contract still needs writing. ~~Rewrite the prompt spec and evaluation table, label the Tool Catalogue, capture the failure/auth test evidence.~~ **Done 25 Sept** as part of the Week 4 close-out.
+4. **Close the remaining documentation debt (P1):** the AI Boundary Matrix still needs its Week 1 planning-table framing. ~~Write the Agent Task Contract and extend the diagram.~~ **Done 2 Oct.** ~~Rewrite the prompt spec and evaluation table, label the Tool Catalogue, capture the failure/auth test evidence.~~ **Done 25 Sept** as part of the Week 4 close-out.
 5. **Wire memory into the agent's context (P1):** this is the one remaining piece of *code* work standing between the project and a fully-covered brief — everything else left is documentation, evaluation volume, or evidence capture.
 6. **Scale evaluation and compile the Failure Catalogue (P2):** grow the 10-case table to 30+ against the real domain and live model, and pull the "Known limitation" notes already scattered across five implementation docs (now six, including the Week 4 test-evidence doc) into one catalogue with re-tests.
 7. **Deliberately skip the P3 items unless time is left over:** CI pipeline and an automated E2E suite are good practice but aren't graded — a few manual smoke tests are enough.

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,13 +27,41 @@ export function TicketDetail({ id }: { id: string }) {
   const assignToMe = useRequestsStore((s) => s.assignToMe)
   const close = useRequestsStore((s) => s.close)
   const reply = useRequestsStore((s) => s.reply)
+  const typingLabel = useRequestsStore((s) => s.typingByRequest[id])
+  const notifyTyping = useRequestsStore((s) => s.notifyTyping)
+  const startRealtime = useRequestsStore((s) => s.startRealtime)
 
   const [draft, setDraft] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const bottomRef = useRef<HTMLLIElement>(null)
+  const messageCount = ticket?.messages.length ?? 0
 
   useEffect(() => {
     void fetchDetail(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // Live updates: new messages and typing indicators are pushed by the server.
+  useEffect(() => startRealtime(), [startRealtime])
+
+  // Say "stopped typing" when leaving the ticket so the other side's dots don't linger.
+  useEffect(() => () => notifyTyping(id, false), [id, notifyTyping])
+
+  // Keep the newest message (or the typing dots) in view.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }, [messageCount, typingLabel])
+
+  async function send() {
+    const text = draft
+    if (isSending || !text.trim()) return
+    // Clear the box immediately so sending feels instant; put the text back if it fails.
+    setDraft("")
+    setIsSending(true)
+    const ok = await reply(id, text)
+    setIsSending(false)
+    if (!ok) setDraft(text)
+  }
 
   if (!ticket) {
     return <p className="px-1 text-xs text-muted-foreground">{error ?? "Loading ticket…"}</p>
@@ -130,28 +158,55 @@ export function TicketDetail({ id }: { id: string }) {
               <p className="mt-1 text-xs text-muted-foreground">{new Date(message.timestamp).toLocaleString()}</p>
             </li>
           ))}
+          {typingLabel && (
+            <li className="flex items-center gap-2 px-1 text-xs text-muted-foreground" aria-live="polite">
+              <TypingDots />
+              <span>{typingLabel} is typing…</span>
+            </li>
+          )}
+          <li ref={bottomRef} aria-hidden className="h-0" />
         </ul>
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Textarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              notifyTyping(id, e.target.value.length > 0)
+            }}
+            onBlur={() => notifyTyping(id, false)}
+            onKeyDown={(e) => {
+              // Enter sends; Shift+Enter inserts a newline.
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                void send()
+              }
+            }}
             placeholder="Reply as support…"
             rows={2}
             className="flex-1"
           />
-          <Button
-            disabled={isSubmitting || !draft.trim()}
-            onClick={async () => {
-              await reply(id, draft)
-              setDraft("")
-            }}
-          >
+          <Button disabled={isSending || !draft.trim()} onClick={() => void send()}>
             Send
           </Button>
         </div>
       </div>
     </div>
+  )
+}
+
+/** Three bouncing dots, staggered so they ripple — the classic "someone is typing" cue. */
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-accent/60 px-2.5 py-1.5" aria-hidden>
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
+          style={{ animationDelay: `${delay}ms`, animationDuration: "1s" }}
+        />
+      ))}
+    </span>
   )
 }
 
