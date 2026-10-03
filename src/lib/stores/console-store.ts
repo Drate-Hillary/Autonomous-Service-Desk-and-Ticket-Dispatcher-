@@ -1,6 +1,7 @@
 import { create } from "zustand"
+import { persist } from "zustand/middleware"
 import { apiClient } from "@/backend/api/client"
-import type { AgentStatus, RunStep } from "@/types/console"
+import type { AgentStatus, RecentTask, RunStep } from "@/types/console"
 
 interface WorkspaceMessage {
   id: string
@@ -28,6 +29,8 @@ interface ConsoleState {
   status: AgentStatus
   run: RunStep[]
   messages: WorkspaceMessage[]
+  recentTasks: RecentTask[]
+  currentTaskId: string | null
   selectedStepKey: string | null
   conversationId: string | null
   approvalId: string | null
@@ -36,10 +39,14 @@ interface ConsoleState {
   selectStep: (key: string | null) => void
   approve: () => Promise<void>
   reject: () => Promise<void>
+  newTask: () => void
 }
 
-let nextId = 1
-let nextStepId = 1
+// Ids must stay unique across reloads now that history is persisted.
+const uid = () => crypto.randomUUID()
+
+const setTaskStatus = (tasks: RecentTask[], id: string | null, status: AgentStatus) =>
+  tasks.map((t) => (t.id === id ? { ...t, status } : t))
 
 /**
  * Drives the Agent Workspace against the real backend agent pipeline —
@@ -50,10 +57,14 @@ let nextStepId = 1
  * returns, and an approval gate only appears when the model actually
  * called draft_escalation_ticket for this request.
  */
-export const useConsoleStore = create<ConsoleState>((set, get) => ({
+export const useConsoleStore = create<ConsoleState>()(
+  persist(
+    (set, get) => ({
   status: "ready",
   run: [],
   messages: [],
+  recentTasks: [],
+  currentTaskId: null,
   selectedStepKey: null,
   conversationId: null,
   approvalId: null,
@@ -64,13 +75,19 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   runAgent: async (request) => {
     if (get().status === "thinking") return
 
+    const taskId = `task-${uid()}`
+    set({
+      currentTaskId: taskId,
+      recentTasks: [{ id: taskId, request, status: "thinking", startedAt: Date.now() }, ...get().recentTasks],
+    })
+
     set({
       run: [],
       status: "thinking",
       selectedStepKey: null,
       approvalId: null,
       error: null,
-      messages: [...get().messages, { id: `local-${nextId++}`, role: "user", content: request }],
+      messages: [...get().messages, { id: `local-${uid()}`, role: "user", content: request }],
     })
 
     try {
@@ -86,7 +103,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       })
 
       const steps: RunStep[] = data.steps.map((text) => ({
-        key: `step-${nextStepId++}`,
+        key: `step-${uid()}`,
         label: text,
         status: "done",
       }))
@@ -98,7 +115,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
           status: "blocked",
           detail: { type: "approval", status: "pending", ...data.escalation },
         })
-        set({ run: steps, status: "awaiting_approval", approvalId: data.escalation.approvalId })
+        set((s) => ({
+          run: steps,
+          status: "awaiting_approval",
+          approvalId: data.escalation!.approvalId,
+          recentTasks: setTaskStatus(s.recentTasks, taskId, "awaiting_approval"),
+        }))
       } else {
         steps.push({
           key: "result",
@@ -106,20 +128,21 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
           status: "done",
           detail: { type: "text", text: data.assistantMessage.content },
         })
-        set({ run: steps, status: "completed" })
+        set((s) => ({ run: steps, status: "completed", recentTasks: setTaskStatus(s.recentTasks, taskId, "completed") }))
       }
 
       set((s) => ({
-        messages: [...s.messages, { id: `local-${nextId++}`, role: "agent", content: data.assistantMessage.content }],
+        messages: [...s.messages, { id: `local-${uid()}`, role: "agent", content: data.assistantMessage.content }],
       }))
     } catch (err) {
       set((s) => ({
         status: "failed",
+        recentTasks: setTaskStatus(s.recentTasks, taskId, "failed"),
         error: err instanceof Error ? err.message : "The agent failed to respond",
         messages: [
           ...s.messages,
           {
-            id: `local-${nextId++}`,
+            id: `local-${uid()}`,
             role: "agent",
             content: "Something went wrong reaching the agent — check that a provider is registered and active, and that the backend is reachable.",
           },
@@ -135,12 +158,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       await apiClient.patch(`/admin/approvals/${approvalId}/approve`)
       set((s) => ({
         status: "completed",
+        recentTasks: setTaskStatus(s.recentTasks, s.currentTaskId, "completed"),
         run: s.run.map((step) =>
           step.detail?.type === "approval" ? { ...step, status: "done", detail: { ...step.detail, status: "approved" } } : step
         ),
         messages: [
           ...s.messages,
-          { id: `local-${nextId++}`, role: "agent", content: "Approved — the escalation ticket has been filed for a human to handle." },
+          { id: `local-${uid()}`, role: "agent", content: "Approved — the escalation ticket has been filed for a human to handle." },
         ],
       }))
     } catch (err) {
@@ -155,16 +179,55 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       await apiClient.patch(`/admin/approvals/${approvalId}/reject`)
       set((s) => ({
         status: "failed",
+        recentTasks: setTaskStatus(s.recentTasks, s.currentTaskId, "failed"),
         run: s.run.map((step) =>
           step.detail?.type === "approval" ? { ...step, status: "failed", detail: { ...step.detail, status: "rejected" } } : step
         ),
         messages: [
           ...s.messages,
-          { id: `local-${nextId++}`, role: "agent", content: "Rejected — no escalation ticket was filed." },
+          { id: `local-${uid()}`, role: "agent", content: "Rejected — no escalation ticket was filed." },
         ],
       }))
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Failed to reject" })
     }
   },
-}))
+
+  newTask: () => {
+    if (get().status === "thinking") return
+    set({
+      status: "ready",
+      run: [],
+      messages: [],
+      selectedStepKey: null,
+      conversationId: null,
+      approvalId: null,
+      currentTaskId: null,
+      error: null,
+    })
+  },
+}),
+    {
+      name: "resolv-console-workspace",
+      skipHydration: true,
+      partialize: (s) => ({
+        recentTasks: s.recentTasks.slice(0, 50),
+        messages: s.messages,
+        run: s.run,
+        conversationId: s.conversationId,
+        currentTaskId: s.currentTaskId,
+        approvalId: s.approvalId,
+        status: s.status === "thinking" ? "failed" : s.status,
+      }),
+      // A task that was mid-flight when the page closed can never finish.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<ConsoleState>
+        return {
+          ...current,
+          ...p,
+          recentTasks: (p.recentTasks ?? []).map((t) => (t.status === "thinking" ? { ...t, status: "failed" as const } : t)),
+        }
+      },
+    }
+  )
+)
