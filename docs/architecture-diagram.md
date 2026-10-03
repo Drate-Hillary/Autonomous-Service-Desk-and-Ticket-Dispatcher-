@@ -100,6 +100,55 @@ flowchart TB
 
 **Build status:** every box is implemented. Not yet backed by a live-model trace: the iteration-cap and boundary exits, and live Act/Observe. See [`../evidence/traces/week-5-execution-traces.md`](../evidence/traces/week-5-execution-traces.md).
 
+## Week 3 extension — the RAG retrieval path (added 3 Oct 2026)
+
+The retrieval path the `Knowledge` and `search_knowledge_base` boxes above stand for, drawn end to end: ingestion → storage → ranking → context assembly → citation. Everything is traced to code in `resolv-hq-backend`; document inventory is in the [Corpus / Source Register](./corpus-source-register.md). Added late (Week 3's ask, drawn in Week 5/6) — it describes the code as it is on 3 Oct, not as it was in Week 3.
+
+```mermaid
+flowchart LR
+    subgraph Ingest["1 · INGESTION  (staff upload, routes/admin/knowledge.ts)"]
+        Up["Staff uploads PDF / text file"] --> Store["Original file stored\n(Supabase Storage)"]
+        Up --> Ext["extractPages()\nPDF → per-page text\ntext → ~3000-char blocks"]
+        Ext --> Chunk["chunkPage()\n~700-char passages\non sentence boundaries"]
+    end
+
+    subgraph Keep["2 · STORAGE  (Postgres)"]
+        Docs[("knowledge_documents\ntitle · status · file")]
+        Chunks[("knowledge_chunks\ncontent · chunk_index\nmetadata.page")]
+    end
+
+    Chunk --> Chunks
+    Up --> Docs
+    Docs -.->|"status = 'published'\nonly"| Load
+
+    subgraph Retrieve["3 · RETRIEVAL  (per chat turn)"]
+        Load["loadPublishedPassages()\nall published passages,\npage-tagged"]
+        Rank["scoreText()\nstemmed keyword overlap\n+ small repeat bonus\n(no embeddings, no vector DB)"]
+        Pick["keep score > 0\ntop 3 (tool) / top 1 (fallback)"]
+        Load --> Rank --> Pick
+    end
+
+    Chunks --> Load
+
+    subgraph Assemble["4 · CONTEXT ASSEMBLY"]
+        Ctx["Passages placed in the prompt\n(Sense) and returned by\nsearch_knowledge_base (Act/Observe)\n500 chars each, with title + page"]
+    end
+
+    Pick --> Ctx
+    Ctx --> Model["LLM via gateway\n(or keyword fallback if\nall providers fail)"]
+
+    subgraph Cite["5 · CITATION"]
+        Rule["Prompt rule: every claim cites\ndocument title + page"]
+        Src["sources[] returned with the\nanswer → link to the document"]
+    end
+
+    Model --> Rule --> Src
+    Src --> Out["Answer to caller"]
+    Pick -.->|"nothing scores > 0"| NoHit["'Not covered — want me to\nraise a request?'"]
+```
+
+**Known weakness, shown on the diagram:** the only "no grounding" exit is the dashed `nothing scores > 0` edge. Because one shared word is enough to score, that edge almost never fires, so unrelated passages reach the model/fallback as if they were grounding. Evidence and cause: [`retrieval-grounding-failures.md`](./retrieval-grounding-failures.md) F2 and the [15-case evaluation](./rag-evaluation-15-case.md).
+
 ## Reading the diagram
 
 - **Solid arrows** are built and working today; **dashed arrows** are either a safety path that only fires on a violation (Boundary → API) or planned-but-not-built (Loaders → Memory, per the Week 6 gap in the task tracker).

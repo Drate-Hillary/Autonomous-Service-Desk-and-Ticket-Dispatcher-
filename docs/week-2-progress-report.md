@@ -2,6 +2,8 @@
 
 **Author:** Person 4 (Project Lead) | **Period covered:** Week 2 | **Date:** 11 Sep 2026
 
+> **Canonical Week 2 report.** Point-in-time record as of 11 Sep 2026; later status is in [`roadmap/task-tracker.md`](./roadmap/task-tracker.md). The planned role split for the week is in [`week-2-role-breakdown.md`](./week-2-role-breakdown.md) (moved here from the repo root, 3 Oct 2026).
+
 ## Objectives vs. achievements
 
 | Objective (per Week 2 brief) | Achieved | Evidence |

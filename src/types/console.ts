@@ -5,6 +5,13 @@
 
 export type AgentStatus = "ready" | "thinking" | "awaiting_approval" | "completed" | "failed"
 
+export interface RecentTask {
+  id: string
+  request: string
+  status: AgentStatus
+  startedAt: number
+}
+
 export type RunStepStatus = "pending" | "active" | "done" | "blocked" | "failed"
 
 export type RunStepDetail =
