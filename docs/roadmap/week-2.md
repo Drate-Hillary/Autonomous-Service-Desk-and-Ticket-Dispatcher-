@@ -35,4 +35,4 @@
 - [ ] Model Selection Note rewritten for the correct domain
 - [ ] Prompt Specification v1.0 rewritten for the correct domain
 - [ ] 10-case evaluation table re-run against real domain + real model
-- [ ] Duplicate Week 2 report resolved
+- [x] Duplicate Week 2 report resolved (3 Oct: `docs/week-2-progress-report.md` is canonical; root `week 2 report.md` was a role breakdown, moved to `docs/week-2-role-breakdown.md`)

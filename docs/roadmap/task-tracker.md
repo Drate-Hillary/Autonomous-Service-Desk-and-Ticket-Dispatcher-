@@ -1,6 +1,6 @@
 # Task Tracker — Weeks 1–8, by Status and Priority
 
-**Compiled:** 24 Sept 2026 · **Last updated:** 2 Oct 2026 (end of Week 5 of 8) | **Consolidates:** [`week-1.md`](./week-1.md) – [`week-8.md`](./week-8.md)
+**Compiled:** 24 Sept 2026 · **Last updated:** 3 Oct 2026 (Weeks 2–5 backfill pass) | **Consolidates:** [`week-1.md`](./week-1.md) – [`week-8.md`](./week-8.md)
 
 Every task the brief asks for across all 8 weeks, grouped by actual status, sorted **highest priority first** within each group. Priority reflects how much it blocks other work or graded rubric items — not the week it's nominally due in. Each entry explains what the task actually involves, why it sits at that priority, who's best placed to own it (per the brief's §5 role split), and the concrete evidence or gap behind the status.
 
@@ -97,6 +97,18 @@ A prompt instruction alone is not a guarantee the model will follow it — the b
 **Agent iteration limits enforced** *(Week 7 · Owner: QSL)*
 Same underlying `MAX_ITERATIONS` cap from Week 5, double-counted here because it's also explicitly one of Week 7's named guardrail asks (alongside validation, allow-lists, and approval controls).
 
+**Duplicate Week 2 report reconciled** *(Week 2 · Owner: PRL)* — **Done 3 Oct**
+The two files were not true duplicates: the root `week 2 report.md` was a role/deliverable breakdown, not a progress report. [`../week-2-progress-report.md`](../week-2-progress-report.md) is now canonical (with a banner saying so); the root file was moved to [`../week-2-role-breakdown.md`](../week-2-role-breakdown.md) and cross-linked, so nothing was lost and only one report sits at the repo root level of grading.
+
+**3 documented retrieval/grounding failures** *(Week 3 · Owner: QSL)* — **Done 3 Oct**
+[`../retrieval-grounding-failures.md`](../retrieval-grounding-failures.md) — four failures with causes traced to code: false premise not verified (case 5), no relevance threshold so unrelated passages are served as answers, a stemmer bug ("statuses" → "statuse") that ranks the wrong passage, and an off-domain document retrievable for support queries. **Update 3 Oct: F2 (no relevance threshold) and F3 (stemmer) are fixed in code and re-tested on the keyword path (15-case: 5/4/6 → 10/4/1); F4 needs the KFC document unpublished.** All but case 5 were observed on the keyword path only, not a live model; the fixes were tuned on the same 15 questions.
+
+**Week 3 report consolidated to one file** *(Week 3 · Owner: PRL)* — **Done 3 Oct**
+[`../week-3-progress-report.md`](../week-3-progress-report.md) — objectives vs. achievements, Tasks 1–20 status, decisions, risks, plan; the four workstream reports are kept as appendices. Rows marked † in it were not re-verified.
+
+**RAG architecture diagram** *(Week 3 · Owner: AEL)* — **Done 3 Oct**
+Added in place to [`../architecture-diagram.md`](../architecture-diagram.md): ingestion → storage → retrieval/ranking → context assembly → citation, with the "nothing scores > 0" exit marked as the known weak point.
+
 ### 🟢 P3 — baseline housekeeping
 
 **GitHub repositories created with real commit history** *(Week 1 · Owner: DDL)*
@@ -116,22 +128,19 @@ The brief's minimum Week 1 evidence includes a functioning GitHub setup. All thr
 **AI Boundary Matrix as a Week 1 planning artifact** *(Week 1 · Owner: PRL)*
 The brief wants the boundary matrix drafted early, as a scoping decision, not discovered after the fact. `ai-boundary-matrix.md` exists and is genuinely thorough, but it's written as a 22 Sept *implementation report* for a specific enforcement task — it never states, up front, "here is what this agent may do / must stay deterministic / needs approval for" in one planning-style table, and it doesn't name the chosen use case. **What's left:** add (or extract into) a short planning table at the top, dated to reflect when the boundary was actually decided, referencing the resolved single use case.
 
-**3 execution traces incl. one failure/recovery case** *(Week 5 · Owner: AEL)*
-The brief wants traces of the *real* agent loop, including a genuine failure and its recovery. `evaluation-table.md` has scenario-level results that gesture at this (e.g., a tool timeout that retried and succeeded), but those are traces of the scripted mock pipeline, not `react-agent.ts` running against a live model. **Updated 2 Oct — 2 of 3 captured** in [`../../evidence/traces/week-5-execution-traces.md`](../../evidence/traces/week-5-execution-traces.md): T1 live-model success (no tool called) and T2 a real failure/recovery (both providers failed → keyword fallback; provider-level, not tool-level). **What's left, once a provider has capacity:** a live trace where the model actually calls tools (Plan→Act→Observe), and one that hits the iteration cap or trips the boundary detector; plus a live customer-vs-staff comparison.
+**3 execution traces incl. one failure/recovery case** *(Week 5 · Owner: AEL)* — **brief minimum met 3 Oct; only optional extras remain**
+The brief wants traces of the *real* agent loop, including a genuine failure and its recovery. `evaluation-table.md` has scenario-level results that gesture at this (e.g., a tool timeout that retried and succeeded), but those are traces of the scripted mock pipeline, not `react-agent.ts` running against a live model. **Updated 2 Oct — 2 of 3 captured** in [`../../evidence/traces/week-5-execution-traces.md`](../../evidence/traces/week-5-execution-traces.md): T1 live-model success (no tool called) and T2 a real failure/recovery (both providers failed → keyword fallback; provider-level, not tool-level). **Updated 3 Oct — now 6 captured:** T3 live Plan→Act→Observe with two tools, T4 a tool-level miss → two re-plans → safe decline, T5/T6 live customer-vs-staff parity on a refund-pressure prompt (both only drafted; nothing claimed done). Gemini's quota had reset; Anthropic is still out of credit. **Still not captured:** a run that hits `MAX_ITERATIONS`, and boundary Layer 2 tripping on a live model (the model refused correctly, so it had nothing to catch).
 
 **Persistent memory wired into the agent's context** *(Week 6 · Owner: AEL)*
 This is the one item on the whole tracker that's still a genuine, non-trivial code task rather than documentation or evidence-capture. `customer_memory_facts` exists as a table, but `system-prompt-spec.md` says plainly it "isn't in the assistant's context yet." **What's left:** extend whatever loads a caller's context in `chat.ts`/`ai.ts` to also pull their approved memory facts into the prompt, following the same "informative, never authorizing" rule the spec already lays out for when this gets added.
 
+**Corpus/Source Register** *(Week 3 · Owner: AEL)*
+**Updated 3 Oct — written, but it shows the gap.** [`../corpus-source-register.md`](../corpus-source-register.md) lists every published document with source type, date and passage count. The live corpus is **3 documents (1 substantive, 1 all-zero ticket report, 1 off-domain KFC menu) — below the brief's 10–50.** **Update 3 Oct:** 8 synthetic support articles are drafted in [`../corpus/`](../corpus/) (not uploaded). **What's left (admin action):** upload them, unpublish the KFC and empty Ticket Summary documents (→ 9 documents, one short of 10), and update the register.
+
+**15-case RAG evaluation** *(Week 3 · Owner: QSL)*
+**Updated 3 Oct — run on retrieval + keyword fallback only: 5 pass · 4 partial · 6 fail** ([`../rag-evaluation-15-case.md`](../rag-evaluation-15-case.md)); notably 0 of 5 unanswerable questions were declined. **Re-run 3 Oct after retrieval fixes: 10 pass · 4 partial · 1 fail** (not independent — fixes were tuned on these questions). **What's left:** re-run on a live model once a provider has capacity, and with a fresh question set after the new corpus is uploaded.
+
 ### 🟡 P2 — consolidation and evidence hygiene
-
-**3 documented retrieval/grounding failures** *(Week 3 · Owner: QSL)*
-The brief wants at least three real, explained retrieval failures, not just passing test cases. `evaluation-table.md`'s case 5 (a false premise the model didn't verify before reasoning) already qualifies as one. **What's left:** find two more (easiest source: the 15-case RAG eval once it's written) and compile all three into their own short artifact with the cause stated for each.
-
-**Week 3 report consolidated to one file** *(Week 3 · Owner: PRL)*
-Four detailed, high-quality task-breakdown reports exist (`week-3-hillary.md`, `-iryn.md`, `-opis.md`, `-yawe.md`), but the brief's §8 format expects one short report from the group leader. **What's left:** write one 1–2 page summary in the brief's format, keeping the four detailed docs as backing appendices rather than discarding them.
-
-**Duplicate Week 2 report reconciled** *(Week 2 · Owner: PRL)*
-`resolv-hq/week 2 report.md` (repo root) and `resolv-hq/docs/week-2-progress-report.md` both exist and may have drifted apart. **What's left:** pick one as canonical, merge anything useful from the other, and remove or clearly archive the duplicate before it becomes a "which one is real" question during grading.
 
 **Trace/logging pipeline extended** *(Week 7 · Owner: DDL)*
 `admin_activity_logs` already captures approval decisions and assignments with real structure — a solid foundation — but nothing yet logs the agent's own reasoning steps or tool calls now that the ReAct loop is live. **What's left:** extend the existing log table (or add a purpose-built one) to record each run's steps, latency, and outcome.
@@ -163,15 +172,6 @@ Not found in-repo. **What's left:** these can be derived retroactively from feat
 
 **Week 1 progress report** *(Week 1 · Owner: PRL)*
 Not found — the earliest report on file is Week 2's. **What's left:** write it using the brief's §8 template, noting plainly that it was compiled retrospectively in Week 4 for evidence purposes, with the real completion date stated rather than silently backdated.
-
-**Corpus/Source Register** *(Week 3 · Owner: AEL)*
-The brief wants a record of every document in the corpus, its source, and its provenance. `help_articles`/`knowledge_documents` exist and are used, but nothing lists them with provenance as a standalone artifact. **What's left:** one row per document — title, source type (public/team-authored/synthetic), date added — and a confirmed count within the brief's recommended 10–50 range.
-
-**RAG architecture diagram** *(Week 3 · Owner: AEL)*
-Not found. **What's left:** extend the Week 1 diagram with the retrieval path specifically (ingestion → storage → ranking → context assembly → citation) rather than drawing a separate one.
-
-**15-case RAG evaluation** *(Week 3 · Owner: QSL)*
-Only the Week 2 10-case *prompt* evaluation exists; no separate RAG-specific set exists. **What's left:** 5 answerable, 5 partially answerable, 5 deliberately unanswerable questions, run once the live model is confirmed, with expected vs. actual recorded for each.
 
 **Memory Design and Data Handling Note** *(Week 6 · Owner: QSL)*
 Blocked on the memory-wiring code task above landing first. **What's left, once that's done:** document what's stored (approved preference facts), why, who can access it (RLS-scoped to the owning customer), retention, and deletion.
