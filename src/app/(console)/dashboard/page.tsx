@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { RunsChart, type RunsByDay } from "@/components/console/runs-chart"
+import { AgentPerformanceChart, type AgentPerformance } from "@/components/console/agent-performance-chart"
 import { StatCard } from "@/components/console/stat-card"
 import { apiFetch } from "@/backend/api/server"
 import {
@@ -35,6 +36,7 @@ interface RecentRun {
 }
 
 interface DashboardResponse {
+  agentPerformance: AgentPerformance[]
   runsByDay: RunsByDay[]
   recentRuns: RecentRun[]
   stats: {
@@ -48,7 +50,7 @@ interface DashboardResponse {
 }
 
 export default async function DashboardPage() {
-  const { runsByDay, recentRuns, stats } = await apiFetch<DashboardResponse>("/admin/dashboard")
+  const { runsByDay, recentRuns, stats, agentPerformance } = await apiFetch<DashboardResponse>("/admin/dashboard")
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 lg:px-6">
@@ -67,6 +69,13 @@ export default async function DashboardPage() {
         <StatCard label="Memory records" value={String(stats.memoryRecords)} icon={AiBrain01Icon} />
         <StatCard label="Failed runs (7d)" value={String(stats.failedRuns)} icon={Alert02Icon} tone="danger" />
         <StatCard label="Pending approvals" value={String(stats.pendingApprovals)} icon={SecurityCheckIcon} tone="warn" />
+      </div>
+
+      <div className="glass-panel p-4">
+        <h3 className="text-xs font-medium text-muted-foreground">Responses given by agent provider</h3>
+        <div className="mt-3">
+          <AgentPerformanceChart data={agentPerformance} />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
