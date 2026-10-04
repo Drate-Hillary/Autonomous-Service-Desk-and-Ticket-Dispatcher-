@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react"
 import Link from "next/link"
 import { AgentFlowDiagram } from "@/components/console/agent-flow-diagram"
+import { ProviderSankey } from "@/components/console/provider-sankey"
 import { Icon } from "@/components/ui/icon"
 import { deriveFlow, FLOW_NODES } from "@/lib/agent-flow"
 import { useConsoleStore } from "@/lib/stores/console-store"
@@ -59,6 +60,8 @@ export default function AgentFlowPage() {
           )}
         </section>
       </div>
+
+      <ProviderSankey />
     </div>
   )
 }
