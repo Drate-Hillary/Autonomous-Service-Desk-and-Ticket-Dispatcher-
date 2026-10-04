@@ -24,6 +24,7 @@ import {
   CpuIcon,
   Ticket01Icon,
   WorkflowSquare01Icon,
+  SparklesIcon
 } from "@hugeicons/core-free-icons"
 
 const data = {
@@ -53,12 +54,12 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <span className="text-sm font-semibold">R</span>
+              <div className="flex items-center justify-center rounded-full aspect-square size-8 bg-sidebar-primary text-sidebar-primary-foreground">
+                <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Resolv-HQ</span>
-                <span className="truncate text-xs">Agent Console</span>
+              <div className="grid flex-1 text-sm leading-tight text-left">
+                <span className="text-lg font-bold truncate">Resolv-HQ</span>
+                <span className="text-xs truncate">Agent Console</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
