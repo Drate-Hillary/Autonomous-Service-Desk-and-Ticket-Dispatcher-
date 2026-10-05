@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { apiClient } from "@/backend/api/client"
+import { EvaluationTab } from "./evaluation-tab"
 import { CpuIcon, Key01Icon, PencilEdit01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 
 export interface AgentProviderRow {
@@ -52,6 +53,7 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState(emptyForm)
+  const [tab, setTab] = useState<"models" | "evaluation">("models")
 
   async function registerModel() {
     if (!form.name.trim() || !form.provider || !form.apiKey.trim()) {
@@ -289,7 +291,27 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div role="tablist" className="flex gap-1 border-b border-border">
+        {(["models", "evaluation"] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm capitalize ${
+              tab === t
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "evaluation" && <EvaluationTab providers={providers} />}
+
+      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 ${tab === "models" ? "" : "hidden"}`}>
         {providers.map((provider) => (
           <div key={provider.id} className="glass-panel flex flex-col p-4">
             <div className="flex items-start justify-between gap-2">
