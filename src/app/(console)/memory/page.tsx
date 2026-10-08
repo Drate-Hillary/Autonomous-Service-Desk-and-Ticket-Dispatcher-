@@ -1,9 +1,12 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiFetch } from "@/backend/api/server"
+import { MemoryAccessPanel } from "./memory-access-panel"
 
 interface MemorySummary {
   recordCount: number
+  customerRecordCount: number
+  staffRecordCount: number
   keys: {
     key: string
     recordCount: number
@@ -43,17 +46,20 @@ export default async function MemoryMcpPage() {
           Memory and tool discovery
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          This view reads memory metadata and registered agent tools from the backend. Memory
-          values are intentionally not exposed in this staff view.
+          Discover registered agent tools, manage your own staff memory, and inspect or manage
+          facts for a customer selected through the authenticated backend.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Memory records" value={memory.recordCount} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard label="Customer memory records" value={memory.customerRecordCount} />
+        <SummaryCard label="Staff memory records" value={memory.staffRecordCount} />
         <SummaryCard label="Memory keys detected" value={memory.keys.length} />
         <SummaryCard label="Registered tools" value={tools.length} />
         <SummaryCard label="Active / executable" value={`${activeToolCount} / ${executableToolCount}`} />
       </div>
+
+      <MemoryAccessPanel />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -74,8 +80,8 @@ export default async function MemoryMcpPage() {
               <p className="text-sm text-muted-foreground">No memory fields are currently stored.</p>
             )}
             <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-              Aggregated keys and counts are read from customer memory storage. Customer-specific
-              values are not returned by the staff summary endpoint.
+              The overview is aggregated. Values are returned only after staff explicitly select
+              a customer through the protected memory-management panel.
             </p>
           </CardContent>
         </Card>
@@ -135,8 +141,8 @@ export default async function MemoryMcpPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            Memory data is customer-scoped by the backend memory API. This staff view displays
-            aggregate key names and counts only, not memory values.
+            Customer memory is customer-scoped. Staff customer-memory reads and changes are
+            restricted to an explicitly selected customer and recorded in the access log.
           </p>
           <p>
             Memory can inform an answer, but it does not authorize actions. Consequential actions
