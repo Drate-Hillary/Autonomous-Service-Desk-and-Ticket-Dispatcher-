@@ -24,7 +24,8 @@ import {
   CpuIcon,
   Ticket01Icon,
   WorkflowSquare01Icon,
-  SparklesIcon
+  SparklesIcon,
+  AiBrain01Icon,
 } from "@hugeicons/core-free-icons"
 
 const data = {
@@ -39,6 +40,7 @@ const data = {
   navGovernance: [
     { title: "Agent Flow", url: "/flow", icon: <HugeiconsIcon icon={WorkflowSquare01Icon} strokeWidth={2} /> },
     { title: "Traces & Logs", url: "/traces", icon: <HugeiconsIcon icon={Activity03Icon} strokeWidth={2} /> },
+    { title: "Memory & MCP", url: "/memory", icon: <HugeiconsIcon icon={AiBrain01Icon} strokeWidth={2} /> },
   ],
 }
 
