@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errors"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
@@ -76,10 +77,7 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
       setForm(emptyForm)
       setOpen(false)
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        "Could not register the model. Please try again."
-      toast.error(message)
+      toastError(err, "Could not register the model. Please try again.")
     } finally {
       setSubmitting(false)
     }
@@ -109,10 +107,7 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
       toast.success(`${data.name} updated`)
       setEditingId(null)
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        "Could not update the provider. Please try again."
-      toast.error(message)
+      toastError(err, "Could not update the provider. Please try again.")
     } finally {
       setSubmitting(false)
     }
@@ -124,8 +119,8 @@ export function ProvidersView({ initialProviders }: { initialProviders: AgentPro
       const { data } = await apiClient.patch<AgentProviderRow>(`/admin/agent-providers/${provider.id}/status`)
       setProviders((prev) => prev.map((p) => (p.id === provider.id ? data : p)))
       toast(`${data.name} ${data.status === "active" ? "enabled" : "disabled"}`)
-    } catch {
-      toast.error("Could not update the provider's status.")
+    } catch (err) {
+      toastError(err, "Could not update the provider's status.")
     } finally {
       setPending(null)
     }

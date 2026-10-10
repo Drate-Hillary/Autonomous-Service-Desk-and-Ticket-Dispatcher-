@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errors"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { apiClient } from "@/backend/api/client"
@@ -34,10 +35,7 @@ export function EvaluationTab({ providers }: { providers: AgentProviderRow[] }) 
       setResults((prev) => ({ ...prev, [provider.id]: data }))
       toast.success(`${provider.name}: ${data.passed}/${data.total} passed`)
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        "Could not run the evaluation."
-      toast.error(message)
+      toastError(err, "Could not run the evaluation.")
     } finally {
       setRunning(null)
     }
