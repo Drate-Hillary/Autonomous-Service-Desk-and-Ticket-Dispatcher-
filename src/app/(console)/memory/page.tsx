@@ -128,8 +128,8 @@ export default async function MemoryMcpPage() {
               <p className="text-sm text-muted-foreground">No tools are currently registered.</p>
             )}
             <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-              These entries are discovered from the internal agent tool registry and describe an
-              MCP-style interface. This registry is not itself a remote MCP protocol server.
+              These entries come from the agent tool registry. The same tools are served over MCP
+              (Streamable HTTP at /mcp, and stdio); use the MCP Tester page to call them.
             </p>
           </CardContent>
         </Card>

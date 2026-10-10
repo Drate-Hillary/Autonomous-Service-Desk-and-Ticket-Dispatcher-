@@ -26,6 +26,7 @@ import {
   WorkflowSquare01Icon,
   SparklesIcon,
   AiBrain01Icon,
+  PlugSocketIcon,
 } from "@hugeicons/core-free-icons"
 
 const data = {
@@ -41,6 +42,7 @@ const data = {
     { title: "Agent Flow", url: "/flow", icon: <HugeiconsIcon icon={WorkflowSquare01Icon} strokeWidth={2} /> },
     { title: "Traces & Logs", url: "/traces", icon: <HugeiconsIcon icon={Activity03Icon} strokeWidth={2} /> },
     { title: "Memory & MCP", url: "/memory", icon: <HugeiconsIcon icon={AiBrain01Icon} strokeWidth={2} /> },
+    { title: "MCP Tester", url: "/mcp", icon: <HugeiconsIcon icon={PlugSocketIcon} strokeWidth={2} /> },
   ],
 }
 
