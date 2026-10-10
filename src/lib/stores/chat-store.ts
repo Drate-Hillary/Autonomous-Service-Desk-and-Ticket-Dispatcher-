@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import { createClient } from "@/backend/supabase/client"
+import { toast } from "sonner"
 import { apiClient } from "@/backend/api/client"
+import { getErrorMessage } from "@/lib/errors"
 import type { ChatStreamItem, CustomerMemoryFact } from "@/types"
 
 interface ChatState {
@@ -154,8 +156,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { data } = await apiClient.post<{ id: string }>("/chat/conversations", { channel: "chat" })
         conversationId = data.id
         set({ conversationId })
-      } catch {
+      } catch (err) {
         conversationId = null
+        toast.warning("Live assistant unavailable", { description: getErrorMessage(err), id: "chat-offline" })
       }
     }
 
@@ -186,8 +189,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         )
 
         replyText = data.assistantMessage.content
-      } catch {
+      } catch (err) {
         // Fall back to the local canned reply below.
+        toast.warning("Couldn't reach the assistant", { description: getErrorMessage(err), id: "chat-offline" })
       }
     }
 
